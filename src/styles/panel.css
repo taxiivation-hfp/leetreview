@@ -71,21 +71,6 @@ svg {
   container-type: size;
 }
 
-/* Scroll where content is long, but never show a scrollbar. */
-.scroll,
-.rec-wrap,
-.tcard,
-.review {
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-.scroll::-webkit-scrollbar,
-.rec-wrap::-webkit-scrollbar,
-.tcard::-webkit-scrollbar,
-.review::-webkit-scrollbar {
-  display: none;
-}
-
 /* ---- chips (sub-tabs) ---- */
 .chips {
   display: flex;
@@ -117,6 +102,21 @@ svg {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+/* Scroll where content is long, but never show a scrollbar.
+   Must follow .body so it wins the overflow:hidden above. */
+.body.scroll,
+.body.rec-wrap,
+.body.review,
+.tcard {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.body.scroll::-webkit-scrollbar,
+.body.rec-wrap::-webkit-scrollbar,
+.body.review::-webkit-scrollbar,
+.tcard::-webkit-scrollbar {
+  display: none;
 }
 .tm {
   font-family: var(--mono);
@@ -318,7 +318,8 @@ svg {
   width: 405px;
   flex: none;
 }
-.split.narrow .detail {
+.split.narrow .detail,
+.split.solo .detail {
   width: 100%;
 }
 .vdiv {

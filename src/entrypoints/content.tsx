@@ -101,7 +101,7 @@ function buildTab(onClick: () => void) {
 
   const content = document.createElement('div');
   content.className = 'flexlayout__tab_button_content';
-  content.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:14px;';
+  content.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap;';
   content.innerHTML =
     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff5a3c" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3"></path></svg><span class="leetreview-label">Mock Interview</span>';
   button.append(content);

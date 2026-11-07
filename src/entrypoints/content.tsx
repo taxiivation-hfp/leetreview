@@ -27,7 +27,7 @@ export default defineContentScript({
     const setActive = (on: boolean) => {
       active = on;
       const host = document.getElementById(HOST_ID);
-      if (host) host.style.display = on ? 'block' : 'none';
+      if (host) host.toggleAttribute('data-open', on);
       const tab = document.getElementById(TAB_ID);
       if (tab) {
         tab.classList.toggle(SEL.tabButtonSelected, on);
@@ -127,7 +127,10 @@ async function mountPanel(
     anchor: tabset,
     onMount: (container, _shadow, host) => {
       host.id = HOST_ID;
-      host.style.cssText = `position:absolute;left:0;right:0;bottom:0;top:${top}px;z-index:50;display:none;`;
+      // WXT resets :host with !important from inside the shadow tree, which
+      // outranks inline styles. Geometry therefore lives in panel.css under
+      // :host; only the variable tab-bar height is passed through a custom prop.
+      host.style.setProperty('--lr-top', `${top}px`);
       container.style.cssText = 'position:absolute;inset:0;';
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'position:absolute;inset:0;';

@@ -2,10 +2,16 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getDescription, getEditorCode } from '../adapters/leetcode';
 import { tokenize, toMarkedText } from '../lib/alignPauses';
-import { db, deleteSessionCascade, getTranscriptForSession, listReviewsForSession } from '../lib/db';
-import { fmtClock, fmtSeconds } from '../lib/format';
-import { fmtWhen } from '../lib/format';
-import { sendRequest, type ReviewData, type TranscribeData } from '../lib/messages';
+import {
+  appendReview,
+  db,
+  deleteSessionCascade,
+  getTranscriptForSession,
+  listReviewsForSession,
+  setTranscript,
+} from '../lib/db';
+import { fmtClock, fmtSeconds, fmtWhen } from '../lib/format';
+import { blobToBase64, sendRequest, type ReviewData, type TranscribeData } from '../lib/messages';
 import { pauseStats } from '../lib/pauses';
 import type { Review, Session } from '../lib/types';
 import { BackIcon, CheckIcon, CopyIcon, PauseIcon, PlayIcon, RefreshIcon, SparkIcon, TrashIcon } from './icons';
@@ -38,21 +44,57 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
     setBusy('transcribe');
     setError(null);
     setConfirm(null);
-    const res = await sendRequest<TranscribeData>({ type: 'TRANSCRIBE', sessionId });
-    if (!res.ok) setError(res.error);
+    try {
+      const audio = await db.audio.get(session!.audioBlobId);
+      if (!audio) throw new Error('Audio missing for this session');
+      const res = await sendRequest<TranscribeData>({
+        type: 'TRANSCRIBE',
+        audioBase64: await blobToBase64(audio.blob),
+        mimeType: audio.mimeType,
+      });
+      if (!res.ok) throw new Error(res.error);
+      await setTranscript({ ...res.data, sessionId, createdAt: Date.now() });
+    } catch (e) {
+      setError((e as Error).message);
+    }
     setBusy(null);
   }
 
   async function review() {
+    if (!session || !transcript) return;
     setBusy('review');
     setError(null);
-    const [code, problemDescription] = await Promise.all([getEditorCode(), Promise.resolve(getDescription())]);
-    const res = await sendRequest<ReviewData>({ type: 'REVIEW', sessionId, problemDescription, code });
-    if (!res.ok) setError(res.error);
-    else {
-      setSelectedReview(res.data.reviewId);
+    try {
+      const code = await getEditorCode();
+      const res = await sendRequest<ReviewData>({
+        type: 'REVIEW',
+        input: {
+          problemTitle: session.problemTitle,
+          difficulty: session.difficulty,
+          problemDescription: getDescription(),
+          code,
+          markedTranscript: toMarkedText(transcript, session.pauses),
+          pauses: session.pauses,
+          durationMs: session.durationMs,
+          fillerCount: transcript.fillerCount ?? 0,
+          outcome: session.outcome,
+        },
+      });
+      if (!res.ok) throw new Error(res.error);
+      const saved = await appendReview({
+        sessionId,
+        provider: res.data.provider,
+        model: res.data.model,
+        createdAt: Date.now(),
+        codeSnapshot: code ?? '',
+        promptVersion: res.data.promptVersion,
+        output: JSON.stringify(res.data.output),
+      });
+      setSelectedReview(saved.id);
       setReviewOpen(true);
       if (code === null) setError('Review done, but the editor code could not be read.');
+    } catch (e) {
+      setError((e as Error).message);
     }
     setBusy(null);
   }

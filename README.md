@@ -56,7 +56,7 @@ Then in Chrome open `chrome://extensions`, turn on Developer mode, click **Load 
 - Groq: <https://console.groq.com/keys> (free tier is enough; 25 MB per upload, which is about 100 minutes at 32 kbps)
 - Anthropic: <https://console.anthropic.com/> (Claude Max subscribers can claim monthly API credits under Settings → Billing on claude.ai)
 
-For development, `npm run dev` runs WXT with hot reload. Chrome 137+ no longer accepts `--load-extension`, so point WXT at a Chrome for Testing binary or load the `.output` folder by hand.
+For development, `npm run dev` runs WXT with hot reload. Chrome 137+ no longer accepts `--load-extension`, so point WXT at a Chrome for Testing binary or load the `.output` folder by hand. `scripts/e2e.mjs` is a DevTools-protocol smoke test that loads the built extension into Chrome for Testing, opens a problem, records with a fake mic and walks the views (see its header for usage).
 
 ## Privacy
 

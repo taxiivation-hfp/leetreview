@@ -136,6 +136,20 @@ try {
         }
       }
       await cdp.send('Emulation.clearDeviceMetricsOverride');
+    } else if (step === 'wheel') {
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1100, height: 600, deviceScaleFactor: 1, mobile: false });
+      await sleep(900);
+      await cdp.eval(`[...document.getElementById('leetreview-host').shadowRoot.querySelectorAll('.ch')].find(b=>b.textContent==='Settings').click()`);
+      await sleep(500);
+      const [x, y] = await cdp.eval("(()=>{const r=document.getElementById('leetreview-host').shadowRoot.querySelector('.body').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]})()");
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x, y, deltaX: 0, deltaY: 300 });
+      await sleep(600);
+      say('wheel scrollTop', await cdp.eval("document.getElementById('leetreview-host').shadowRoot.querySelector('.body').scrollTop"));
+      say('synthetic prevented', await cdp.eval("(()=>{const b=document.getElementById('leetreview-host').shadowRoot.querySelector('.body');const ev=new WheelEvent('wheel',{deltaY:100,bubbles:true,cancelable:true,composed:true});b.dispatchEvent(ev);return ev.defaultPrevented})()"));
+      say('programmatic', await cdp.eval("(()=>{const b=document.getElementById('leetreview-host').shadowRoot.querySelector('.body');b.scrollTop=150;return b.scrollTop+' ov='+getComputedStyle(b).overflowY+' sh='+b.scrollHeight+' ch='+b.clientHeight})()"));
+      await cdp.shot('14-wheel.png');
+      await cdp.send('Emulation.clearDeviceMetricsOverride');
     } else if (step === 'wait') {
       await sleep(1500);
       await cdp.shot('12-wait.png');

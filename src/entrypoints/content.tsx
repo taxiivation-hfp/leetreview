@@ -145,6 +145,9 @@ async function mountPanel(
       // outranks inline styles. Geometry therefore lives in panel.css under
       // :host; only the variable tab-bar height is passed through a custom prop.
       host.style.setProperty('--lr-top', `${top}px`);
+      // LeetCode cancels wheel events (observed 2026-11-07), which kills native
+      // scrolling inside the shadow tree. Scroll our own containers by hand.
+      host.addEventListener('wheel', scrollByWheel, { capture: true, passive: false });
       container.style.cssText = 'position:absolute;inset:0;';
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'position:absolute;inset:0;';
@@ -155,6 +158,25 @@ async function mountPanel(
     },
     onRemove: (root) => root?.unmount(),
   });
+}
+
+function scrollByWheel(e: WheelEvent) {
+  const host = e.currentTarget as HTMLElement;
+  const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+  for (const node of e.composedPath()) {
+    if (node === host) break;
+    if (!(node instanceof HTMLElement)) continue;
+    const ov = getComputedStyle(node).overflowY;
+    if (ov !== 'auto' && ov !== 'scroll') continue;
+    const max = node.scrollHeight - node.clientHeight;
+    if (max <= 0) continue;
+    const canMove = dy < 0 ? node.scrollTop > 0 : node.scrollTop < max;
+    if (!canMove) continue; // let an outer container take it
+    node.scrollTop += dy;
+    break;
+  }
+  e.preventDefault();
+  e.stopPropagation();
 }
 
 /** @font-face must be declared in the document, not the shadow root. */

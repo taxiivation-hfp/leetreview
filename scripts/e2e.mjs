@@ -1,6 +1,6 @@
 // End-to-end smoke test over the Chrome DevTools Protocol. Needs Chrome for Testing
 // (stable Chrome 137+ ignores --load-extension): npx @puppeteer/browsers install chrome@stable
-// Usage: node scripts/e2e.mjs <chrome.exe> <path to .output/chrome-mv3> <outDir> [open geom record sessions nokey narrow native nav code]
+// Usage: node scripts/e2e.mjs <chrome.exe> <path to .output/chrome-mv3> <outDir> [open geom record sessions nokey narrow native nav code fit]
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -122,6 +122,19 @@ try {
       await sleep(1200);
       say('narrow split', await cdp.eval("document.getElementById('leetreview-host').shadowRoot.querySelector('.split')?.className + ' w=' + document.getElementById('leetreview-host').getBoundingClientRect().width"));
       await cdp.shot('11-narrow.png');
+      await cdp.send('Emulation.clearDeviceMetricsOverride');
+    } else if (step === 'fit') {
+      // Smaller viewports stand in for higher browser zoom (CSS px shrink the same way).
+      for (const [w, h] of [[1600, 900], [1280, 720], [1100, 600]]) {
+        await cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+        await sleep(900);
+        for (const label of ['Record', 'Sessions', 'Settings']) {
+          await cdp.eval(`[...document.getElementById('leetreview-host').shadowRoot.querySelectorAll('.ch')].find(b=>b.textContent==='${label}').click()`);
+          await sleep(400);
+          say(`fit ${w}x${h} ${label}`, await cdp.eval(`(()=>{const h=document.getElementById('leetreview-host');const sr=h.shadowRoot;const ts=h.parentElement;const hr=h.getBoundingClientRect(),tr=ts.getBoundingClientRect();const over=[...sr.querySelectorAll('*')].filter(e=>e.scrollHeight>e.clientHeight+1||e.scrollWidth>e.clientWidth+1).map(e=>e.className+':'+e.scrollHeight+'/'+e.clientHeight);const vis=[...sr.querySelectorAll('*')].filter(e=>{const s=getComputedStyle(e);return /auto|scroll/.test(s.overflowY)&&e.scrollHeight>e.clientHeight+1&&e.offsetWidth-e.clientWidth>0}).map(e=>e.className);return JSON.stringify({hostInTabset:hr.bottom<=tr.bottom+1&&hr.right<=tr.right+1,hostH:Math.round(hr.height),overflow:over,visibleScrollbars:vis,timer:getComputedStyle(sr.querySelector('.rec-head .tm')||sr.querySelector('.pane')).fontSize})})()`));
+          await cdp.shot(`13-fit-${w}x${h}-${label.toLowerCase()}.png`);
+        }
+      }
       await cdp.send('Emulation.clearDeviceMetricsOverride');
     } else if (step === 'wait') {
       await sleep(1500);

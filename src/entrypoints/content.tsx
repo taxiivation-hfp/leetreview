@@ -7,6 +7,7 @@ import type { ProblemInfo } from '../lib/types';
 
 const TAB_ID = 'leetreview-tab';
 const HOST_ID = 'leetreview-host';
+const NARROW_PX = 600;
 
 export default defineContentScript({
   matches: ['https://leetcode.com/*'],
@@ -19,6 +20,7 @@ export default defineContentScript({
     let active = false;
     let root: ReactDOM.Root | null = null;
     let problem: ProblemInfo | null = null;
+    let labelRo: ResizeObserver | null = null;
 
     const render = () => {
       if (root && problem) root.render(<Panel problem={problem} />);
@@ -62,6 +64,15 @@ export default defineContentScript({
         });
       }
 
+      // Narrow panes get the short label, as in the mock's narrow frame.
+      if (!labelRo) {
+        labelRo = new ResizeObserver(([e]) => {
+          const label = document.querySelector<HTMLElement>(`#${TAB_ID} .leetreview-label`);
+          if (label && e) label.textContent = e.contentRect.width < NARROW_PX ? 'Interview' : 'Mock Interview';
+        });
+        labelRo.observe(tabset);
+      }
+
       if (!document.getElementById(HOST_ID) || !ui) {
         ui?.remove();
         ui = await mountPanel(ctx, tabset, (r) => (root = r));
@@ -84,7 +95,10 @@ export default defineContentScript({
       if (isProblemPage() && !document.getElementById(TAB_ID)) void ensure();
     });
     mo.observe(document.body, { childList: true, subtree: true });
-    ctx.onInvalidated(() => mo.disconnect());
+    ctx.onInvalidated(() => {
+      mo.disconnect();
+      labelRo?.disconnect();
+    });
   },
 });
 

@@ -13,7 +13,6 @@ export interface ReviewInput {
   pauses: Pause[];
   durationMs: number;
   fillerCount: number;
-  outcome: string | null;
 }
 
 export interface ReviewResult {

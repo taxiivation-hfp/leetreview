@@ -37,7 +37,6 @@ function SessionRow({ session, onOpen }: { session: Session; onOpen: () => void 
         <PlayIcon />
       </span>
       <span className="when">
-        <i className={'dot ' + (session.outcome ?? 'none')} title={session.outcome ?? 'no outcome'} />
         {fmtWhen(session.startedAt)}
         {session.transcriptId && (
           <span className="mut" style={{ fontSize: 11 }}>

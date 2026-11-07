@@ -2,7 +2,6 @@ import Dexie, { type EntityTable } from 'dexie';
 import { nanoid } from 'nanoid';
 import type {
   Audio,
-  Outcome,
   Pause,
   ProblemInfo,
   RecordingChunk,
@@ -50,7 +49,6 @@ export async function createSession(input: {
   pauses: Pause[];
   blob: Blob;
   mimeType: string;
-  outcome?: Outcome | null;
 }): Promise<Session> {
   const session: Session = {
     id: nanoid(),
@@ -59,7 +57,6 @@ export async function createSession(input: {
     difficulty: input.problem.difficulty,
     startedAt: input.startedAt,
     durationMs: input.durationMs,
-    outcome: input.outcome ?? null,
     audioBlobId: nanoid(),
     pauses: input.pauses,
     reviewIds: [],
@@ -69,10 +66,6 @@ export async function createSession(input: {
     await db.sessions.add(session);
   });
   return session;
-}
-
-export function setOutcome(sessionId: string, outcome: Outcome | null) {
-  return db.sessions.update(sessionId, { outcome });
 }
 
 /** Removes the session plus its audio, transcript and every review. */
@@ -142,7 +135,7 @@ export async function findOrphanRecordings(): Promise<
 }
 
 /** Concatenates saved chunks into one Audio blob and creates a session from it. */
-export async function finalizeRecording(recordingId: string, outcome: Outcome | null = null) {
+export async function finalizeRecording(recordingId: string) {
   const chunks = await db.recordingChunks.where('recordingId').equals(recordingId).sortBy('seq');
   if (chunks.length === 0) return null;
   const meta = chunks[chunks.length - 1]!.meta;
@@ -157,7 +150,6 @@ export async function finalizeRecording(recordingId: string, outcome: Outcome | 
     pauses: meta.pauses,
     blob,
     mimeType: meta.mimeType,
-    outcome,
   });
   await discardRecording(recordingId);
   return session;

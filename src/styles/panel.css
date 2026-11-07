@@ -204,25 +204,6 @@ svg {
 .wave.idle i {
   background: rgba(255, 180, 84, 0.35);
 }
-.pills {
-  display: flex;
-  gap: 8px;
-}
-.pill {
-  flex: 1;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 10px 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--fg);
-}
-.pill.on {
-  background: rgba(255, 180, 84, 0.14);
-  border-color: var(--amber);
-  color: #fff;
-}
 .hint {
   text-align: center;
   font-size: 12px;
@@ -300,18 +281,7 @@ svg {
   border-radius: 4px;
   display: inline-block;
   flex: none;
-}
-.dot.solved {
-  background: #7ddc8a;
-}
-.dot.partial {
   background: var(--amber);
-}
-.dot.stuck {
-  background: var(--red);
-}
-.dot.none {
-  background: var(--border);
 }
 .empty {
   flex: 1;

@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { createSession, findOrphanRecordings, finalizeRecording, discardRecording, setOutcome } from '../lib/db';
+import { createSession, findOrphanRecordings, finalizeRecording, discardRecording } from '../lib/db';
 import { fmtClock, fmtSeconds } from '../lib/format';
 import { startRecording, stopRecording, useRecordingState } from '../lib/recordingStore';
 import type { Settings } from '../lib/settings';
-import type { Outcome, ProblemInfo, RecordingMeta } from '../lib/types';
+import type { ProblemInfo, RecordingMeta } from '../lib/types';
 import { MicIcon, StopIcon } from './icons';
-import { OutcomePills } from './OutcomePills';
 import { Waveform } from './Waveform';
 
 interface Props {
@@ -17,7 +16,6 @@ export function RecordView({ problem, settings }: Props) {
   const rec = useRecordingState();
   const [elapsed, setElapsed] = useState(0);
   const [quietMs, setQuietMs] = useState(0);
-  const [outcome, setOutcomeLocal] = useState<Outcome | null>(null);
   const [lastSessionId, setLastSessionId] = useState<string | null>(null);
   const [orphans, setOrphans] = useState<{ recordingId: string; meta: RecordingMeta }[]>([]);
 
@@ -50,14 +48,12 @@ export function RecordView({ problem, settings }: Props) {
         pauses: done.result.pauses,
         blob: done.result.blob,
         mimeType: done.result.mimeType,
-        outcome,
       });
       setLastSessionId(s.id);
       setElapsed(0);
       setQuietMs(0);
     } else {
       setLastSessionId(null);
-      setOutcomeLocal(null);
       await startRecording({
         problem,
         micDeviceId: settings.micDeviceId || undefined,
@@ -65,11 +61,6 @@ export function RecordView({ problem, settings }: Props) {
         silenceDb: settings.silenceDb,
       });
     }
-  }
-
-  async function onOutcome(o: Outcome | null) {
-    setOutcomeLocal(o);
-    if (lastSessionId) await setOutcome(lastSessionId, o);
   }
 
   async function recover(id: string) {
@@ -125,13 +116,6 @@ export function RecordView({ problem, settings }: Props) {
         </div>
 
         <Waveform recorder={recording ? rec.recorder : null} />
-
-        <div>
-          <div className="lbl" style={{ marginBottom: 8 }}>
-            Outcome
-          </div>
-          <OutcomePills value={outcome} onChange={onOutcome} />
-        </div>
 
         {rec.error ? (
           <div className="err hint">{rec.error}</div>

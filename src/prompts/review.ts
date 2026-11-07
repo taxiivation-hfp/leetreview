@@ -46,7 +46,7 @@ export function buildUserMessage(input: ReviewInput): string {
   );
 
   parts.push(
-    `## Session stats\n- Duration: ${fmtClock(input.durationMs)}\n- Self-reported outcome: ${input.outcome ?? 'not set'}\n- Pauses (>= threshold): ${stats.count}, total silence ${fmtSeconds(stats.totalMs)}, longest ${fmtSeconds(stats.longestMs)}\n- Filler words counted (lower bound): ${input.fillerCount}`,
+    `## Session stats\n- Duration: ${fmtClock(input.durationMs)}\n- Pauses (>= threshold): ${stats.count}, total silence ${fmtSeconds(stats.totalMs)}, longest ${fmtSeconds(stats.longestMs)}\n- Filler words counted (lower bound): ${input.fillerCount}`,
   );
 
   parts.push(`## Transcript (verbatim, with pause markers)\n${input.markedTranscript || '(empty)'}`);

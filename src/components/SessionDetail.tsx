@@ -77,7 +77,6 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
           pauses: session.pauses,
           durationMs: session.durationMs,
           fillerCount: transcript.fillerCount ?? 0,
-          outcome: session.outcome,
         },
       });
       if (!res.ok) throw new Error(res.error);
@@ -226,7 +225,7 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
   );
 }
 
-const MicDot = () => <span className="dot partial" style={{ width: 8, height: 8 }} />;
+const MicDot = () => <span className="dot" style={{ width: 8, height: 8 }} />;
 
 function TranscriptText({ tokens }: { tokens: ReturnType<typeof tokenize> }) {
   return (

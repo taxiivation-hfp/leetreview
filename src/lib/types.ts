@@ -1,5 +1,4 @@
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
-export type Outcome = 'solved' | 'partial' | 'stuck';
 
 export interface Pause {
   startMs: number;
@@ -13,7 +12,6 @@ export interface Session {
   difficulty: Difficulty | null;
   startedAt: number;
   durationMs: number;
-  outcome: Outcome | null;
   audioBlobId: string;
   pauses: Pause[];
   transcriptId?: string;

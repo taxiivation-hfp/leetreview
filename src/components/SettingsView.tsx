@@ -12,7 +12,7 @@ export function SettingsView({ settings }: { settings: Settings }) {
   }, []);
 
   return (
-    <div className="body scroll" style={{ gap: 18, maxWidth: 520 }}>
+    <div className="body scroll" style={{ gap: 18 }}>
       <KeyField
         label="Groq API key · transcription"
         value={settings.groqKey}

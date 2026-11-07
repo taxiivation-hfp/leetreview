@@ -34,8 +34,12 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
   const [confirm, setConfirm] = useState<'delete' | 'retranscribe' | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // A session that already has a review opens straight onto it.
   useEffect(() => {
-    if (reviews.length > 0 && !selectedReview) setSelectedReview(reviews[0]!.id);
+    if (reviews.length > 0 && !selectedReview) {
+      setSelectedReview(reviews[0]!.id);
+      setReviewOpen(true);
+    }
   }, [reviews, selectedReview]);
 
   if (!session) return <div className="body empty">Session not found.</div>;
@@ -110,7 +114,7 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
   const showReview = reviewOpen && current;
 
   return (
-    <div className={'split' + (narrow ? ' narrow' : '')}>
+    <div className={'split' + (narrow ? ' narrow' : '') + (showReview ? '' : ' solo')}>
       {(!narrow || !showReview) && (
         <div className="body detail">
           <div className="d-head">

@@ -22,6 +22,8 @@ const proc = spawn(
     '--window-size=1600,900',
     '--use-fake-ui-for-media-stream',
     '--use-fake-device-for-media-stream',
+    // Extra Chrome flags, e.g. E2E_FLAGS="--disable-gpu" when the window can't render.
+    ...(process.env.E2E_FLAGS ? process.env.E2E_FLAGS.split(' ') : []),
     'about:blank',
   ],
   { stdio: ["ignore", "inherit", "inherit"] },
@@ -71,8 +73,13 @@ class CDP {
     return r.result.value;
   }
   async shot(name) {
-    const r = await this.send('Page.captureScreenshot', { format: 'png' });
-    writeFileSync(join(outDir, name), Buffer.from(r.data, 'base64'));
+    // Fails when the window is hidden or minimized; keep the run's assertions going.
+    try {
+      const r = await this.send('Page.captureScreenshot', { format: 'png' });
+      writeFileSync(join(outDir, name), Buffer.from(r.data, 'base64'));
+    } catch (e) {
+      console.log(`shot ${name} failed: ${e.message}`);
+    }
   }
 }
 
@@ -178,6 +185,60 @@ try {
       await sleep(800);
       say('detail', await cdp.eval("document.getElementById('leetreview-host').shadowRoot.querySelector('.detail')?.textContent.slice(0,160)"));
       await cdp.shot('07-detail.png');
+    } else if (step === 'edit') {
+      // Seed a timestamped transcript (and one pause) on the newest session through
+      // page-world IndexedDB; the content script shares the leetcode.com origin.
+      const words = 'so I will use a hash nap to store the um complement'.split(' ');
+      say('seed', await cdp.eval(`(async()=>{const db=await new Promise((r,j)=>{const q=indexedDB.open('leetreview');q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)});
+        const all=await new Promise(r=>{const q=db.transaction('sessions').objectStore('sessions').getAll();q.onsuccess=()=>r(q.result)});
+        const s=all.sort((a,b)=>b.startedAt-a.startedAt)[0]; if(!s) return 'no session';
+        const tx=db.transaction(['sessions','transcripts'],'readwrite');
+        s.pauses=[{startMs:4600,durationMs:7000}]; s.transcriptId='e2e-t'; tx.objectStore('sessions').put(s);
+        tx.objectStore('transcripts').put({id:'e2e-t',sessionId:s.id,provider:'e2e',createdAt:Date.now(),text:${JSON.stringify(words.join(' '))},
+          words:${JSON.stringify(words)}.map((w,i)=>({word:w,startMs:i*1000,endMs:i*1000+500})),fillerCount:1});
+        await new Promise(r=>tx.oncomplete=r); window.__e2eSession=s.id; return 'ok '+s.id})()`));
+      const sr = "document.getElementById('leetreview-host').shadowRoot";
+      await cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='Sessions').click()`);
+      await sleep(600);
+      await cdp.eval(`${sr}.querySelector('.row')?.click()`);
+      await sleep(800);
+      say('transcript before', await cdp.eval(`${sr}.querySelector('.tcard').textContent`));
+      // Escape cancels.
+      await cdp.eval(`${sr}.querySelector('[aria-label="Edit transcript"]').click()`);
+      await sleep(300);
+      say('textarea focused', await cdp.eval(`${sr}.activeElement?.className`));
+      await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+      await sleep(300);
+      say('after escape, textarea', await cdp.eval(`!!${sr}.querySelector('.t-edit')`));
+      // Real edit: fix the mishearing and drop the filler.
+      await cdp.eval(`${sr}.querySelector('[aria-label="Edit transcript"]').click()`);
+      await sleep(300);
+      await cdp.eval(`(()=>{const t=${sr}.querySelector('.t-edit');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(t,'so I will use a hashmap to store the complement');t.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+      await sleep(200);
+      await cdp.shot('15-editing.png');
+      await cdp.eval(`${sr}.querySelector('[aria-label="Save transcript"]').click()`);
+      await sleep(800);
+      say('transcript after', await cdp.eval(`${sr}.querySelector('.tcard').textContent`));
+      say('stats after', await cdp.eval(`${sr}.querySelector('.stats').textContent`));
+      say('stored', await cdp.eval(`(async()=>{const db=await new Promise(r=>{const q=indexedDB.open('leetreview');q.onsuccess=()=>r(q.result)});
+        const t=await new Promise(r=>{const q=db.transaction('transcripts').objectStore('transcripts').get('e2e-t');q.onsuccess=()=>r(q.result)});
+        return JSON.stringify({text:t.text,words:t.words.map(w=>w.word+'@'+w.startMs).join(' '),fillerCount:t.fillerCount,edited:!!t.editedAt})})()`));
+      await cdp.shot('16-edited.png');
+    } else if (step === 'prompt') {
+      const sr = "document.getElementById('leetreview-host').shadowRoot";
+      await cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='Settings').click()`);
+      await sleep(600);
+      say('prompt default head', await cdp.eval(`${sr}.querySelector('.field textarea').value.slice(0,40)`));
+      say('reset shown (default)', await cdp.eval(`!!${sr}.querySelector('[aria-label="Restore default prompt"]')`));
+      await cdp.eval(`(()=>{const t=${sr}.querySelector('.field textarea');t.focus();Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(t,'Be terse.');t.dispatchEvent(new Event('input',{bubbles:true}));t.blur()})()`);
+      await sleep(600);
+      say('reset shown (custom)', await cdp.eval(`!!${sr}.querySelector('[aria-label="Restore default prompt"]')`));
+      say('prompt custom value', await cdp.eval(`${sr}.querySelector('.field textarea').value`));
+      await cdp.shot('17-prompt-custom.png');
+      await cdp.eval(`${sr}.querySelector('[aria-label="Restore default prompt"]').click()`);
+      await sleep(600);
+      say('after reset head', await cdp.eval(`${sr}.querySelector('.field textarea').value.slice(0,40)`));
+      say('reset shown (after reset)', await cdp.eval(`!!${sr}.querySelector('[aria-label="Restore default prompt"]')`));
     } else if (step === 'native') {
       const [cx, cy] = await cdp.eval("(()=>{const b=[...document.querySelectorAll('.flexlayout__tab_button')].find(b=>/^Description/.test(b.innerText));const r=b.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]})()");
       await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: cx, y: cy });

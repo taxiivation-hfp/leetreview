@@ -16,6 +16,8 @@ export interface Session {
   pauses: Pause[];
   transcriptId?: string;
   reviewIds: string[];
+  /** LeetCode topic tags; undefined until looked up (see backfillProblemMeta). */
+  topics?: string[];
 }
 
 export interface Audio {
@@ -111,6 +113,11 @@ export interface RecordingMeta {
   mimeType: string;
   pauses: Pause[];
   elapsedMs: number;
+}
+
+export interface ProblemMeta {
+  difficulty: Difficulty | null;
+  topics: string[];
 }
 
 export interface ProblemInfo {

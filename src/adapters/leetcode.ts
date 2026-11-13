@@ -1,4 +1,4 @@
-import type { Difficulty, ProblemInfo } from '../lib/types';
+import type { Difficulty, ProblemInfo, ProblemMeta } from '../lib/types';
 
 /**
  * Every LeetCode-specific selector lives here. Observed 2026-11-07 on
@@ -18,6 +18,8 @@ export const SEL = {
   tabPane: '.flexlayout__tab',
   description: '[data-track-load="description_content"]',
   difficultyClassPrefix: 'text-difficulty-',
+  /** Topic tag chips under the description. */
+  topicLinks: 'a[href^="/tag/"]',
   problemPath: /^\/problems\/([^/]+)/,
 } as const;
 
@@ -69,6 +71,47 @@ export function getProblemInfo(url: string = location.href): ProblemInfo | null 
   const slug = getSlug(url);
   if (!slug) return null;
   return { slug, title: getTitle(slug) ?? slugToTitle(slug), difficulty: getDifficulty() };
+}
+
+const META_QUERY =
+  'query leetreviewMeta($titleSlug: String!) { question(titleSlug: $titleSlug) { difficulty topicTags { name } } }';
+
+/**
+ * Difficulty and topic tags for any problem slug, from LeetCode's own
+ * same-origin GraphQL endpoint (observed 2026-11-13, no CSRF token needed).
+ * Falls back to the tag links when the slug is the open problem.
+ */
+export async function fetchProblemMeta(slug: string): Promise<ProblemMeta | null> {
+  try {
+    const res = await fetch(`${location.origin}/graphql/`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query: META_QUERY, variables: { titleSlug: slug } }),
+    });
+    if (res.ok) {
+      const json = (await res.json()) as {
+        data?: { question?: { difficulty?: string; topicTags?: { name: string }[] } | null };
+      };
+      const q = json.data?.question;
+      if (q) {
+        return {
+          difficulty: asDifficulty(q.difficulty),
+          topics: (q.topicTags ?? []).map((t) => t.name).filter(Boolean),
+        };
+      }
+    }
+  } catch {
+    // fall through to the page
+  }
+  if (getSlug() !== slug) return null;
+  const topics = [...document.querySelectorAll<HTMLAnchorElement>(SEL.topicLinks)]
+    .map((a) => a.innerText.trim())
+    .filter(Boolean);
+  return topics.length > 0 ? { difficulty: getDifficulty(), topics: [...new Set(topics)] } : null;
+}
+
+function asDifficulty(s: string | undefined): Difficulty | null {
+  return s === 'Easy' || s === 'Medium' || s === 'Hard' ? s : null;
 }
 
 export function getDescription(): string | null {

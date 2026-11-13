@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { createSession, findOrphanRecordings, finalizeRecording, discardRecording } from '../lib/db';
+import { fetchProblemMeta } from '../adapters/leetcode';
+import {
+  backfillProblemMeta,
+  createSession,
+  discardRecording,
+  finalizeRecording,
+  findOrphanRecordings,
+} from '../lib/db';
 import { fmtClock, fmtSeconds } from '../lib/format';
 import { startRecording, stopRecording, useRecordingState } from '../lib/recordingStore';
 import type { Settings } from '../lib/settings';
@@ -50,6 +57,7 @@ export function RecordView({ problem, settings }: Props) {
         mimeType: done.result.mimeType,
       });
       setLastSessionId(s.id);
+      void backfillProblemMeta(fetchProblemMeta);
       setElapsed(0);
       setQuietMs(0);
     } else {
@@ -65,6 +73,7 @@ export function RecordView({ problem, settings }: Props) {
 
   async function recover(id: string) {
     await finalizeRecording(id);
+    void backfillProblemMeta(fetchProblemMeta);
     setOrphans(await findOrphanRecordings());
   }
   async function discard(id: string) {

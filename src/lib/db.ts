@@ -4,6 +4,7 @@ import type {
   Audio,
   Pause,
   ProblemInfo,
+  ProblemMeta,
   RecordingChunk,
   RecordingMeta,
   Review,
@@ -78,6 +79,33 @@ export async function deleteSessionCascade(sessionId: string) {
     await db.reviews.where('sessionId').equals(sessionId).delete();
     await db.sessions.delete(sessionId);
   });
+}
+
+let backfilling: Promise<void> | null = null;
+
+/**
+ * Adds topic tags (and a missing difficulty) to sessions saved without them,
+ * one lookup per problem. Covers sessions from before tags were stored and
+ * crash-recovered ones. Concurrent calls share one run.
+ */
+export function backfillProblemMeta(fetchMeta: (slug: string) => Promise<ProblemMeta | null>) {
+  backfilling ??= (async () => {
+    const missing = await db.sessions.filter((s) => s.topics === undefined).toArray();
+    for (const slug of new Set(missing.map((s) => s.problemSlug))) {
+      const meta = await fetchMeta(slug).catch(() => null);
+      if (!meta) continue;
+      await db.sessions
+        .where('problemSlug')
+        .equals(slug)
+        .modify((s) => {
+          s.topics = meta.topics;
+          if (s.difficulty === null) s.difficulty = meta.difficulty;
+        });
+    }
+  })().finally(() => {
+    backfilling = null;
+  });
+  return backfilling;
 }
 
 // ---------- transcripts ----------

@@ -224,6 +224,114 @@ try {
         const t=await new Promise(r=>{const q=db.transaction('transcripts').objectStore('transcripts').get('e2e-t');q.onsuccess=()=>r(q.result)});
         return JSON.stringify({text:t.text,words:t.words.map(w=>w.word+'@'+w.startMs).join(' '),fillerCount:t.fillerCount,edited:!!t.editedAt})})()`));
       await cdp.shot('16-edited.png');
+    } else if (step === 'review') {
+      // Seed one rubric (v2) and one legacy (v1) review on the newest session, then open it.
+      const crit = (score, n) => ({ score, note: `Said "let me check the edge case" at 2:10 (${score}).`,
+        improvements: Array.from({ length: 4 - score }, (_, i) => `Practice item ${i + 1} for this criterion.`) });
+      const v2 = { summary: 'You found the hash map approach quickly but never traced a test case.',
+        criteria: { understanding: crit(3), approach: crit(4), complexity: crit(2), code: crit(3), testing: crit(1), communication: crit(3) } };
+      const v1 = { summary: 'Legacy review.', strengths: ['Fast.'], weaknesses: ['Quiet.'], improvements: ['a', 'b', 'c'] };
+      say('seed reviews', await cdp.eval(`(async()=>{const db=await new Promise(r=>{const q=indexedDB.open('leetreview');q.onsuccess=()=>r(q.result)});
+        const all=await new Promise(r=>{const q=db.transaction('sessions').objectStore('sessions').getAll();q.onsuccess=()=>r(q.result)});
+        const s=all.sort((a,b)=>b.startedAt-a.startedAt)[0]; if(!s) return 'no session';
+        const tx=db.transaction(['sessions','reviews'],'readwrite');
+        const now=Date.now();
+        const mk=(id,out,ver,dt)=>({id,sessionId:s.id,provider:'anthropic',model:'claude-sonnet-5-5',createdAt:now-dt,codeSnapshot:'',promptVersion:ver,output:JSON.stringify(out)});
+        tx.objectStore('reviews').put(mk('e2e-r1',${JSON.stringify(v1)},'v1',60000));
+        tx.objectStore('reviews').put(mk('e2e-r2',${JSON.stringify(v2)},'v2',0));
+        s.reviewIds=['e2e-r1','e2e-r2']; tx.objectStore('sessions').put(s);
+        await new Promise(r=>tx.oncomplete=r); return 'ok'})()`));
+      const sr = "document.getElementById('leetreview-host').shadowRoot";
+      await cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='Record').click()`);
+      await sleep(300);
+      await cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='Sessions').click()`);
+      await sleep(600);
+      await cdp.eval(`${sr}.querySelector('.row')?.click()`);
+      await sleep(900);
+      say('hero', await cdp.eval(`${sr}.querySelector('.score-hero')?.textContent`));
+      say('meters', await cdp.eval(`[...${sr}.querySelectorAll('.crit .meter')].map(m=>m.getAttribute('aria-label')).join(' | ')`));
+      say('fix counts', await cdp.eval(`[...${sr}.querySelectorAll('.crit')].map(c=>c.querySelectorAll('.r-item').length).join(',')`));
+      await cdp.shot('18-review-v2.png');
+      await cdp.eval(`(()=>{const s=${sr}.querySelector('.hist select');const set=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;set.call(s,'e2e-r1');s.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+      await sleep(500);
+      say('legacy', await cdp.eval(`${sr}.querySelector('.review')?.textContent.slice(0,140)`));
+      await cdp.shot('19-review-v1.png');
+    } else if (step === 'history') {
+      // Seed 8 scored attempts over three problems, then drive filters, the split toggle and hover.
+      const probs = [
+        ['two-sum', '1. Two Sum', 'Easy', ['Array', 'Hash Table']],
+        ['add-two-numbers', '2. Add Two Numbers', 'Medium', ['Linked List', 'Math']],
+        ['median-of-two-sorted-arrays', '4. Median of Two Sorted Arrays', 'Hard', ['Array', 'Binary Search']],
+      ];
+      const ids = ['understanding', 'approach', 'complexity', 'code', 'testing', 'communication'];
+      const rows = Array.from({ length: 8 }, (_, k) => {
+        const [slug, title, difficulty, topics] = probs[k % 3];
+        const criteria = Object.fromEntries(ids.map((id, j) => {
+          const score = Math.max(1, Math.min(4, 1 + Math.round((k + j) / 3) - (id === 'testing' ? 1 : 0)));
+          return [id, { score, note: 'n', improvements: [] }];
+        }));
+        return { s: { id: 'h' + k, problemSlug: slug, problemTitle: title, difficulty, topics, startedAt: Date.now() - (8 - k) * 86400000,
+          durationMs: 600000, audioBlobId: 'none', pauses: [], reviewIds: ['hr' + k] },
+          r: { id: 'hr' + k, sessionId: 'h' + k, provider: 'anthropic', model: 'claude-sonnet-5-5', createdAt: Date.now() - (8 - k) * 86400000 + 1000,
+          codeSnapshot: '', promptVersion: 'v2', output: JSON.stringify({ summary: 's', criteria }) } };
+      });
+      say('seed history', await cdp.eval(`(async()=>{const db=await new Promise(r=>{const q=indexedDB.open('leetreview');q.onsuccess=()=>r(q.result)});
+        const tx=db.transaction(['sessions','reviews'],'readwrite');
+        for (const {s,r} of ${JSON.stringify(rows)}) { tx.objectStore('sessions').put(s); tx.objectStore('reviews').put(r); }
+        await new Promise(r=>tx.oncomplete=r); return 'ok'})()`));
+      const sr = "document.getElementById('leetreview-host').shadowRoot";
+      const chip = (l) => cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='${l}').click()`);
+      await chip('History');
+      await sleep(900);
+      say('history dots', await cdp.eval(`${sr}.querySelectorAll('.chart .dot').length`));
+      say('history tiles', await cdp.eval(`[...${sr}.querySelectorAll('.tile')].map(t=>t.textContent).join(' | ')`));
+      say('filter options', await cdp.eval(`[...${sr}.querySelectorAll('.add-filter optgroup')].map(g=>g.label+':'+[...g.children].map(o=>o.textContent).join('/')).join(' ; ')`));
+      // Hover the middle of the chart.
+      const [hx, hy] = await cdp.eval(`(()=>{const r=${sr}.querySelector('.chart svg').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]})()`);
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: hx, y: hy });
+      await sleep(300);
+      say('tooltip', await cdp.eval(`${sr}.querySelector('.tip')?.textContent`));
+      await cdp.shot('20-history-overall.png');
+      const pick = (v) => cdp.eval(`(()=>{const s=${sr}.querySelector('.add-filter');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s,${JSON.stringify(v)});s.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+      await pick('topic:Array');
+      await sleep(400);
+      say('after topic:Array dots', await cdp.eval(`${sr}.querySelectorAll('.chart .dot').length`));
+      await pick('difficulty:Hard');
+      await sleep(400);
+      say('after +Hard dots', await cdp.eval(`${sr}.querySelectorAll('.chart .dot').length`));
+      say('chips', await cdp.eval(`[...${sr}.querySelectorAll('.fchip')].map(c=>c.textContent).join(',')`));
+      await cdp.shot('21-history-filtered.png');
+      await cdp.eval(`${sr}.querySelector('.fchip').click()`);
+      await sleep(300);
+      await cdp.eval(`${sr}.querySelector('.fchip').click()`);
+      await sleep(300);
+      await chip('Criteria');
+      await sleep(600);
+      say('multiples', await cdp.eval(`${sr}.querySelectorAll('.mini').length + ' weak=' + (${sr}.querySelector('.mini.weak .mini-head')?.textContent)`));
+      const [mx, my] = await cdp.eval(`(()=>{const r=${sr}.querySelector('.mini .chart svg').getBoundingClientRect();return [r.right-4,r.top+r.height/2]})()`);
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: mx, y: my });
+      await sleep(300);
+      say('criteria tooltip', await cdp.eval(`${sr}.querySelector('.tip')?.textContent`));
+      say('crosshairs', await cdp.eval(`${sr}.querySelectorAll('.xhair').length`));
+      await cdp.shot('22-history-criteria.png');
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1100, height: 760, deviceScaleFactor: 1, mobile: false });
+      await sleep(900);
+      await cdp.shot('23-history-narrow.png');
+      await chip('Overall');
+      await sleep(500);
+      await cdp.shot('24-history-narrow-overall.png');
+      say('narrow overflow', await cdp.eval(`(()=>{const b=${sr}.querySelector('.history');return b.scrollWidth+'/'+b.clientWidth})()`));
+      await cdp.send('Emulation.clearDeviceMetricsOverride');
+    } else if (step === 'meta') {
+      // Probe the same-origin GraphQL query the adapter uses for difficulty + topic tags.
+      say('graphql', await cdp.eval(`fetch('/graphql/',{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({query:'query q($titleSlug:String!){question(titleSlug:$titleSlug){difficulty topicTags{name}}}',variables:{titleSlug:'two-sum'}})})
+        .then(async r=>r.status+' '+(await r.text()).slice(0,300)).catch(e=>'ERR '+e.message)`));
+      say('tag links', await cdp.eval(`[...document.querySelectorAll('a[href^="/tag/"]')].map(a=>a.textContent.trim()).join(',')`));
+      await sleep(1500);
+      say('session meta', await cdp.eval(`(async()=>{const db=await new Promise(r=>{const q=indexedDB.open('leetreview');q.onsuccess=()=>r(q.result)});
+        const all=await new Promise(r=>{const q=db.transaction('sessions').objectStore('sessions').getAll();q.onsuccess=()=>r(q.result)});
+        return JSON.stringify(all.map(s=>({slug:s.problemSlug,difficulty:s.difficulty,topics:s.topics})))})()`));
     } else if (step === 'prompt') {
       const sr = "document.getElementById('leetreview-host').shadowRoot";
       await cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='Settings').click()`);

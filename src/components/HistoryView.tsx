@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { fetchProblemMeta } from '../adapters/leetcode';
 import { backfillProblemMeta, db } from '../lib/db';
 import { fmtWhen } from '../lib/format';
@@ -12,7 +12,7 @@ import {
   type FilterKind,
   type Point,
 } from '../lib/history';
-import { CRITERIA, LEVEL_COLORS, levelColor } from '../lib/rubric';
+import { CRITERIA, HIRE_CUTOFF, LEVEL_COLORS, levelColor } from '../lib/rubric';
 import type { Review, Session } from '../lib/types';
 import { ChevronIcon, CloseIcon } from './icons';
 import { Meter, Verdict } from './ReviewPane';
@@ -287,6 +287,7 @@ function ScoreChart({
   compact?: boolean;
 }) {
   const [ref, w] = useWidth();
+  const zone = 'hire' + useId().replace(/[^\w-]/g, '');
   const n = values.length;
   const pad = compact ? { l: 4, r: 6, t: 6, b: 6 } : { l: 24, r: 12, t: 10, b: 22 };
   const iw = Math.max(1, w - pad.l - pad.r);
@@ -327,6 +328,15 @@ function ScoreChart({
             emit(Math.min(n - 1, Math.max(0, (hover ?? n - 1) + step)), e.currentTarget);
           }}
         >
+          {/* Hire zone: green above the Lean no / Lean hire line, deepening toward 4. */}
+          <defs>
+            <linearGradient id={zone} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor={LEVEL_COLORS[3]} stopOpacity={0.13} />
+              <stop offset="1" stopColor={LEVEL_COLORS[3]} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <rect x={pad.l} y={y(4)} width={iw} height={y(HIRE_CUTOFF) - y(4)} fill={`url(#${zone})`} />
+          <line className="cut" x1={pad.l} x2={w - pad.r} y1={y(HIRE_CUTOFF)} y2={y(HIRE_CUTOFF)} />
           {[1, 2, 3, 4].map((v) => (
             <g key={v}>
               <line className="grid" x1={pad.l} x2={w - pad.r} y1={y(v)} y2={y(v)} />

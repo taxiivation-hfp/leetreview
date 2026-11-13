@@ -91,9 +91,12 @@ export function overall(criteria: ReviewOutput['criteria']): number {
   return CRITERIA.reduce((sum, c) => sum + criteria[c.id].score, 0) / CRITERIA.length;
 }
 
+/** Lowest average that reads as Lean hire; History shades the charts above it. */
+export const HIRE_CUTOFF = 2.5;
+
 /** Nearest level to an average score. */
 export function levelOf(avg: number): Score {
-  return avg >= 3.5 ? 4 : avg >= 2.5 ? 3 : avg >= 1.5 ? 2 : 1;
+  return avg >= 3.5 ? 4 : avg >= HIRE_CUTOFF ? 3 : avg >= 1.5 ? 2 : 1;
 }
 
 export const verdict = (avg: number) => LEVELS[levelOf(avg) - 1];

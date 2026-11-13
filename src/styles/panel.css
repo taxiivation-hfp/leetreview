@@ -889,6 +889,11 @@ input[type='range'] {
   font-family: var(--mono);
   font-size: 10px;
 }
+.chart .cut {
+  stroke: rgba(12, 163, 12, 0.45);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
 .chart .xhair {
   stroke: rgba(255, 255, 255, 0.35);
   stroke-width: 1;

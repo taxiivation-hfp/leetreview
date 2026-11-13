@@ -18,7 +18,7 @@ I built it because interview prep on your own has no feedback loop. You solve th
 | Sessions | Per-problem list, newest first, with playback, a pause-marked scrubber and silence stats. |
 | Transcribe | Manual, per session. Audio goes to Groq Whisper (`whisper-large-v3`) with a filler-preserving prompt. Fillers are highlighted, pauses shown inline, and nothing is ever stripped. Fix mishearings by hand afterwards; pauses keep their place. |
 | Review | Manual, per session. Transcript, pause data, problem text and your current editor code go to Claude (Sonnet 5.5 by default, switchable to Opus or Haiku). Scored on a fixed six-criterion rubric, 1-4 from Strong no to Strong hire, with a quoted justification and fixes per criterion. Every review is kept so you can compare attempts. |
-| History | Rubric scores over time across every problem. Add filters for difficulty, topic or problem, and switch between the overall score and one small chart per criterion. |
+| History | Rubric scores over time across every problem, with Lean hire and above shaded green. Add filters for difficulty, topic or problem, and switch between the overall score and one small chart per criterion. Click an attempt for its six scores, or its title to open the session; going back leaves the page as you left it. |
 | Settings | Keys, review model and prompt, pause threshold, silence sensitivity, microphone. |
 
 ## Screenshots
@@ -29,7 +29,7 @@ I built it because interview prep on your own has no feedback loop. You solve th
     <td><img src="screenshots/review.png" width="460" alt="Transcript with fillers and pauses marked, beside the rubric review"></td>
   </tr>
   <tr>
-    <td><img src="screenshots/history.png" width="460" alt="History of overall scores across ten weeks of attempts"></td>
+    <td><img src="screenshots/history.png" width="460" alt="History of overall scores across ten weeks, hire zone shaded, newest attempt expanded"></td>
     <td><img src="screenshots/criteria.png" width="460" alt="History split into one chart per criterion, weakest outlined"></td>
   </tr>
   <tr>

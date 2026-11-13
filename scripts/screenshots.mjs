@@ -170,6 +170,9 @@ async function main() {
   await chip(cdp, 'History');
   await sleep(1200);
   console.log('tiles', await cdp.eval(`[...${SR}.querySelectorAll('.tile')].map(t=>t.textContent).join(' | ')`));
+  // Open the newest attempt's criteria.
+  await cdp.eval(`${SR}.querySelector('.att-row').click()`);
+  await sleep(300);
   await cdp.shot('history.png');
 
   await chip(cdp, 'Criteria');

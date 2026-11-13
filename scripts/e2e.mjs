@@ -1,6 +1,6 @@
 // End-to-end smoke test over the Chrome DevTools Protocol. Needs Chrome for Testing
 // (stable Chrome 137+ ignores --load-extension): npx @puppeteer/browsers install chrome@stable
-// Usage: node scripts/e2e.mjs <chrome.exe> <path to .output/chrome-mv3> <outDir> [open geom record sessions nokey narrow native nav code fit]
+// Usage: node scripts/e2e.mjs <chrome.exe> <path to .output/chrome-mv3> <outDir> [open geom record sessions nokey narrow native nav code fit history drill ...]
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -322,6 +322,56 @@ try {
       await cdp.shot('24-history-narrow-overall.png');
       say('narrow overflow', await cdp.eval(`(()=>{const b=${sr}.querySelector('.history');return b.scrollWidth+'/'+b.clientWidth})()`));
       await cdp.send('Emulation.clearDeviceMetricsOverride');
+    } else if (step === 'drill') {
+      // After 'history': expand an attempt, open another problem's session from its title,
+      // come back, and check the view is as it was. Seeds a transcript so review gating shows.
+      const sr = "document.getElementById('leetreview-host').shadowRoot";
+      const chip = (l) => cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='${l}').click()`);
+      say('seed drill', await cdp.eval(`(async()=>{const db=await new Promise(r=>{const q=indexedDB.open('leetreview');q.onsuccess=()=>r(q.result)});
+        const tx=db.transaction(['sessions','transcripts'],'readwrite');
+        const s=await new Promise(r=>{const q=tx.objectStore('sessions').get('h7');q.onsuccess=()=>r(q.result)});
+        s.transcriptId='h7t'; tx.objectStore('sessions').put(s);
+        tx.objectStore('transcripts').put({id:'h7t',sessionId:'h7',provider:'e2e',createdAt:Date.now(),text:'so a linked list',fillerCount:0});
+        await new Promise(r=>tx.oncomplete=r); return 'ok'})()`));
+      await chip('Settings');
+      await sleep(300);
+      await chip('History');
+      await sleep(700);
+      const pick = (v) => cdp.eval(`(()=>{const s=${sr}.querySelector('.add-filter');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s,${JSON.stringify(v)});s.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+      await pick('topic:Linked List');
+      await sleep(300);
+      await pick('topic:Array');
+      await sleep(300);
+      await chip('Criteria');
+      await sleep(500);
+      await cdp.eval(`${sr}.querySelectorAll('.att-row')[1].click()`);
+      await sleep(300);
+      const state = `JSON.stringify({chips:[...${sr}.querySelectorAll('.fchip')].map(c=>c.textContent),split:${sr}.querySelector('.seg .on')?.textContent,
+        open:[...${sr}.querySelectorAll('.att.open .ttl')].map(t=>t.textContent),meters:${sr}.querySelectorAll('.att.open .att-crit .meter').length,
+        scroll:${sr}.querySelector('.history')?.scrollTop,zone:${sr}.querySelectorAll('.chart .cut').length})`;
+      await cdp.eval(`${sr}.querySelector('.history').scrollTop=120`);
+      await sleep(200);
+      const before = await cdp.eval(state);
+      say('history before', before);
+      await cdp.shot('25-history-expanded.png');
+      // Open the newest add-two-numbers attempt (h7) by its title.
+      await cdp.eval(`[...${sr}.querySelectorAll('.att .ttl')].find(t=>/Add Two Numbers/.test(t.textContent)).click()`);
+      await sleep(900);
+      say('detail from history', await cdp.eval(`JSON.stringify({detail:!!${sr}.querySelector('.detail'),chip:${sr}.querySelector('.chips .on')?.textContent,
+        prob:${sr}.querySelector('.d-prob')?.textContent,back:${sr}.querySelector('.d-head .ib')?.getAttribute('aria-label'),
+        review:[...${sr}.querySelectorAll('.acts .act')].map(b=>b.textContent+(b.disabled?':disabled':'')).join(','),
+        rerun:${sr}.querySelector('[aria-label="Review again"]')?.disabled})`));
+      await cdp.shot('26-detail-from-history.png');
+      await cdp.eval(`${sr}.querySelector('[aria-label="Back to history"]').click()`);
+      await sleep(600);
+      const after = await cdp.eval(state);
+      say('history after back', after, after === before ? 'SAME' : 'CHANGED');
+      await chip('Record');
+      await sleep(300);
+      await chip('History');
+      await sleep(600);
+      const again = await cdp.eval(state);
+      say('history after chip switch', again, again === before ? 'SAME' : 'CHANGED');
     } else if (step === 'meta') {
       // Probe the same-origin GraphQL query the adapter uses for difficulty + topic tags.
       say('graphql', await cdp.eval(`fetch('/graphql/',{method:'POST',headers:{'content-type':'application/json'},

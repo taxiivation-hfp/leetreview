@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { fetchProblemMeta } from '../adapters/leetcode';
 import { backfillProblemMeta, db } from '../lib/db';
 import { fmtWhen } from '../lib/format';
@@ -13,16 +13,15 @@ import {
   type Point,
 } from '../lib/history';
 import { CRITERIA, LEVEL_COLORS, levelColor } from '../lib/rubric';
-import { CloseIcon } from './icons';
-import { Verdict } from './ReviewPane';
+import type { Review, Session } from '../lib/types';
+import { ChevronIcon, CloseIcon } from './icons';
+import { Meter, Verdict } from './ReviewPane';
 
 export type Split = 'overall' | 'criteria';
 
 interface Props {
-  filters: Filter[];
-  onFilters: (f: Filter[]) => void;
-  split: Split;
-  onSplit: (s: Split) => void;
+  /** Opens one attempt's session detail. */
+  onOpen: (sessionId: string) => void;
 }
 
 /** Hovered attempt plus the viewport position of its mark, for the tooltip. */
@@ -32,15 +31,53 @@ interface Hover {
   y: number;
 }
 
-export function HistoryView({ filters, onFilters, split, onSplit }: Props) {
-  const sessions = useLiveQuery(() => db.sessions.toArray(), []);
-  const reviews = useLiveQuery(() => db.reviews.toArray(), []);
+/**
+ * The view as the user left it, kept at module level so it outlives this
+ * component (opening a session, switching tabs) and the panel itself, which
+ * LeetCode can remount. The last loaded rows let a return render at once,
+ * at the same height, so the scroll position can be put back.
+ */
+interface ViewState {
+  filters: Filter[];
+  split: Split;
+  expanded: string[];
+  scrollTop: number;
+  sessions?: Session[];
+  reviews?: Review[];
+}
+const cache: ViewState = { filters: [], split: 'overall', expanded: [], scrollTop: 0 };
+
+function useCached<K extends 'filters' | 'split' | 'expanded'>(key: K) {
+  const [value, setValue] = useState<ViewState[K]>(cache[key]);
+  const set = (next: ViewState[K]) => {
+    cache[key] = next;
+    setValue(next);
+  };
+  return [value, set] as const;
+}
+
+export function HistoryView({ onOpen }: Props) {
+  const sessions = useLiveQuery(() => db.sessions.toArray(), [], cache.sessions);
+  const reviews = useLiveQuery(() => db.reviews.toArray(), [], cache.reviews);
+  const [filters, onFilters] = useCached('filters');
+  const [split, onSplit] = useCached('split');
+  const [expanded, setExpanded] = useCached('expanded');
   const [hover, setHover] = useState<Hover | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
 
   // Older sessions predate stored topic tags; fill them in so topic filters cover them.
   useEffect(() => {
     void backfillProblemMeta(fetchProblemMeta);
+  }, []);
+
+  useEffect(() => {
+    cache.sessions = sessions;
+    cache.reviews = reviews;
+  }, [sessions, reviews]);
+
+  // Before paint, so a return never flashes the top of the page.
+  useLayoutEffect(() => {
+    if (wrap.current) wrap.current.scrollTop = cache.scrollTop;
   }, []);
 
   const all = useMemo(() => (sessions && reviews ? buildPoints(sessions, reviews) : []), [sessions, reviews]);
@@ -59,7 +96,11 @@ export function HistoryView({ filters, onFilters, split, onSplit }: Props) {
     f.kind === 'problem' ? (opts.problem.find((p) => p.slug === f.value)?.title ?? f.value) : f.value;
 
   return (
-    <div className="body scroll history" ref={wrap}>
+    <div
+      className="body scroll history"
+      ref={wrap}
+      onScroll={(e) => (cache.scrollTop = e.currentTarget.scrollTop)}
+    >
       <div className="h-bar">
         <FilterAdd opts={opts} filters={filters} onAdd={(f) => onFilters([...filters, f])} />
         {filters.map((f, i) => (
@@ -134,7 +175,16 @@ export function HistoryView({ filters, onFilters, split, onSplit }: Props) {
         </div>
       )}
 
-      {points.length > 0 && <Attempts points={points} />}
+      {points.length > 0 && (
+        <Attempts
+          points={points}
+          expanded={expanded}
+          onToggle={(id) =>
+            setExpanded(expanded.includes(id) ? expanded.filter((x) => x !== id) : [...expanded, id])
+          }
+          onOpen={onOpen}
+        />
+      )}
       {hover && points[hover.i] && wrap.current && (
         <Tip p={points[hover.i]!} split={split} at={hover} wrap={wrap.current} />
       )}
@@ -257,7 +307,8 @@ function ScoreChart({
   }
 
   return (
-    <div ref={ref} className="chart">
+    // Fixed height so the page is full length before the width is measured.
+    <div ref={ref} className="chart" style={{ height }}>
       {w > 0 && (
         <svg
           width={w}
@@ -354,24 +405,63 @@ function Tip({ p, split, at, wrap }: { p: Point; split: Split; at: Hover; wrap: 
   );
 }
 
-/** The table view: every plotted value is readable here without hovering. */
-function Attempts({ points }: { points: Point[] }) {
+/**
+ * The table view: every plotted value is readable here without hovering.
+ * A row click shows its six criterion scores; the title opens the session.
+ */
+function Attempts({
+  points,
+  expanded,
+  onToggle,
+  onOpen,
+}: {
+  points: Point[];
+  expanded: string[];
+  onToggle: (sessionId: string) => void;
+  onOpen: (sessionId: string) => void;
+}) {
   return (
     <div className="attempts">
       <div className="lbl">Attempts</div>
-      {[...points].reverse().map((p) => (
-        <div className="att" key={p.sessionId}>
-          <span className="when mut">{fmtWhen(p.t)}</span>
-          <span className="ttl" title={p.title}>
-            {p.title}
-          </span>
-          {p.difficulty && <span className="dif mut">{p.difficulty[0]}</span>}
-          <span className="sc tm">
-            <i style={{ background: levelColor(p.score) }} />
-            {p.score.toFixed(1)}
-          </span>
-        </div>
-      ))}
+      {[...points].reverse().map((p) => {
+        const open = expanded.includes(p.sessionId);
+        return (
+          <div className={'att' + (open ? ' open' : '')} key={p.sessionId}>
+            {/* The chevron is the keyboard control; its click bubbles here like any other. */}
+            <div className="att-row" onClick={() => onToggle(p.sessionId)}>
+              <span className="when mut">{fmtWhen(p.t)}</span>
+              <button
+                className="ttl"
+                title={p.title}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpen(p.sessionId);
+                }}
+              >
+                {p.title}
+              </button>
+              {p.difficulty && <span className="dif mut">{p.difficulty[0]}</span>}
+              <span className="sc tm">
+                <i style={{ background: levelColor(p.score) }} />
+                {p.score.toFixed(1)}
+              </span>
+              <button className="chev" aria-expanded={open} aria-label={`Criteria for ${p.title}`}>
+                <ChevronIcon size={13} />
+              </button>
+            </div>
+            {open && (
+              <div className="att-crit">
+                {CRITERIA.map((c) => (
+                  <div key={c.id}>
+                    <span>{c.label}</span>
+                    <Meter score={p.criteria[c.id]} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -68,7 +68,20 @@ export const BackIcon = ({ size = 16, ...p }: P) => (
   </svg>
 );
 
-export const CloseIcon = ({ size = 14, ...p }: P) => (
+export const ChevronIcon = ({ size = 14, ...p }: P) => (
+  <svg
+    {...base(size, p)}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+);
+
+export const CloseIcon =({ size = 14, ...p }: P) => (
   <svg {...base(size, p)} fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round">
     <path d="M6 6l12 12M18 6L6 18" />
   </svg>

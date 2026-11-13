@@ -10,7 +10,8 @@ interface Props {
   busy: boolean;
   onSelect: (id: string) => void;
   onClose: () => void;
-  onRerun: () => void;
+  /** Null when this page can't run a review (the session is another problem's). */
+  onRerun: (() => void) | null;
 }
 
 export function ReviewPane({ reviews, current, busy, onSelect, onClose, onRerun }: Props) {
@@ -45,7 +46,13 @@ export function ReviewPane({ reviews, current, busy, onSelect, onClose, onRerun 
             ))}
           </select>
         </span>
-        <button className="ib" aria-label="Review again" onClick={onRerun} disabled={busy} title="Review again">
+        <button
+          className="ib"
+          aria-label="Review again"
+          onClick={onRerun ?? undefined}
+          disabled={busy || !onRerun}
+          title={onRerun ? 'Review again' : 'Open this problem to review it'}
+        >
           {busy ? <span className="spin" /> : <RefreshIcon size={14} />}
         </button>
         <button className="ib" aria-label="Copy review" onClick={copy}>

@@ -31,11 +31,14 @@ import { ReviewPane } from './ReviewPane';
 
 interface Props {
   sessionId: string;
+  /** Problem open in the page. Reviewing reads its description and editor code. */
+  pageSlug: string;
   narrow: boolean;
+  backLabel?: string;
   onBack: () => void;
 }
 
-export function SessionDetail({ sessionId, narrow, onBack }: Props) {
+export function SessionDetail({ sessionId, pageSlug, narrow, backLabel = 'Back to sessions', onBack }: Props) {
   const session = useLiveQuery(() => db.sessions.get(sessionId), [sessionId]);
   const transcript = useLiveQuery(() => getTranscriptForSession(sessionId), [sessionId]);
   const reviews = useLiveQuery(() => listReviewsForSession(sessionId), [sessionId]) ?? [];
@@ -59,6 +62,11 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
 
   if (!session) return <div className="body empty">Session not found.</div>;
 
+  // Opened from History on another problem's page: a review would read this page's
+  // description and code, so reviewing waits until that problem is open.
+  const elsewhere = session.problemSlug !== pageSlug;
+  const reviewElsewhere = 'Open this problem to review it';
+
   async function transcribe() {
     setBusy('transcribe');
     setError(null);
@@ -80,7 +88,7 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
   }
 
   async function review() {
-    if (!session || !transcript) return;
+    if (!session || !transcript || elsewhere) return;
     setBusy('review');
     setError(null);
     try {
@@ -151,7 +159,7 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
       {(!narrow || !showReview) && (
         <div className="body detail">
           <div className="d-head">
-            <button className="ib" aria-label="Back to sessions" onClick={onBack}>
+            <button className="ib" aria-label={backLabel} onClick={onBack}>
               <BackIcon />
             </button>
             <b>{fmtWhen(session.startedAt)}</b>
@@ -173,6 +181,12 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
               </button>
             )}
           </div>
+
+          {elsewhere && (
+            <a className="d-prob" href={`/problems/${session.problemSlug}/`} title={reviewElsewhere}>
+              {session.problemTitle}
+            </a>
+          )}
 
           <Player session={session} />
 
@@ -272,7 +286,8 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
             {transcript && (
               <button
                 className={'act' + (reviews.length === 0 || stale ? ' hot' : '')}
-                disabled={busy !== null || editing}
+                disabled={busy !== null || editing || (elsewhere && !showOnly)}
+                title={elsewhere && !showOnly ? reviewElsewhere : undefined}
                 onClick={() => (showOnly ? setReviewOpen(true) : review())}
               >
                 {busy === 'review' ? <span className="spin" /> : <SparkIcon />}
@@ -291,7 +306,7 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
             current={current}
             onSelect={setSelectedReview}
             onClose={() => setReviewOpen(false)}
-            onRerun={review}
+            onRerun={elsewhere ? null : review}
             busy={busy === 'review'}
           />
         </>

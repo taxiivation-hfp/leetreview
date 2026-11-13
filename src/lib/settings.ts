@@ -9,6 +9,8 @@ export interface Settings {
   /** RMS level (dBFS) below which the mic is considered silent. Higher = more sensitive. */
   silenceDb: number;
   micDeviceId: string;
+  /** Reviewer system prompt; empty means the built-in one. */
+  reviewPrompt: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pauseThresholdMs: 5000,
   silenceDb: -50,
   micDeviceId: '',
+  reviewPrompt: '',
 };
 
 export const REVIEW_MODELS: { id: ReviewModel; label: string }[] = [

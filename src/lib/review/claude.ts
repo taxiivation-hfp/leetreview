@@ -10,9 +10,10 @@ import { ReviewError, type Reviewer, type ReviewResult } from './types';
 export const claudeReviewer: Reviewer = {
   id: 'anthropic',
 
-  async review(input, { apiKey, model, signal }): Promise<ReviewResult> {
+  async review(input, { apiKey, model, systemPrompt, signal }): Promise<ReviewResult> {
     if (!apiKey) throw new ReviewError('Add an Anthropic API key in Settings.', 'no-key');
 
+    const custom = systemPrompt?.trim();
     const client = new Anthropic({
       apiKey,
       dangerouslyAllowBrowser: true,
@@ -31,7 +32,7 @@ export const claudeReviewer: Reviewer = {
               effort: 'medium',
               format: { type: 'json_schema', schema: REVIEW_SCHEMA },
             },
-            system: SYSTEM_PROMPT,
+            system: custom || SYSTEM_PROMPT,
             messages: [{ role: 'user', content: buildUserMessage(input) }],
           },
           { signal },
@@ -68,6 +69,7 @@ export const claudeReviewer: Reviewer = {
       throw new ReviewError('The review came back malformed; try again.', 'provider');
     }
 
-    return { provider: claudeReviewer.id, model, promptVersion: PROMPT_VERSION, output };
+    const promptVersion = custom ? `${PROMPT_VERSION}-custom` : PROMPT_VERSION;
+    return { provider: claudeReviewer.id, model, promptVersion, output };
   },
 };

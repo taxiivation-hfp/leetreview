@@ -26,7 +26,7 @@ export interface Reviewer {
   readonly id: string;
   review(
     input: ReviewInput,
-    opts: { apiKey: string; model: ReviewModel; signal?: AbortSignal },
+    opts: { apiKey: string; model: ReviewModel; systemPrompt?: string; signal?: AbortSignal },
   ): Promise<ReviewResult>;
 }
 

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { PauseDetector } from '../lib/pauses';
 import { listMics } from '../lib/recorder';
 import { REVIEW_MODELS, updateSettings, type ReviewModel, type Settings } from '../lib/settings';
-import { EyeIcon } from './icons';
+import { SYSTEM_PROMPT } from '../prompts/review';
+import { EyeIcon, RefreshIcon } from './icons';
 
 export function SettingsView({ settings }: { settings: Settings }) {
   const [mics, setMics] = useState<MediaDeviceInfo[]>([]);
@@ -39,6 +40,8 @@ export function SettingsView({ settings }: { settings: Settings }) {
           ))}
         </select>
       </div>
+
+      <PromptField value={settings.reviewPrompt} />
 
       <div className="field">
         <div className="lbl">Pause threshold · seconds</div>
@@ -123,6 +126,48 @@ function KeyField({
         </button>
       </div>
       <div className="note">{hint}</div>
+    </div>
+  );
+}
+
+/** Reviewer system prompt. Stored as '' while it matches the built-in one. */
+function PromptField({ value }: { value: string }) {
+  const [local, setLocal] = useState(value || SYSTEM_PROMPT);
+  useEffect(() => setLocal(value || SYSTEM_PROMPT), [value]);
+  const custom = value !== '';
+
+  function save() {
+    const v = local.trim();
+    const next = v === '' || v === SYSTEM_PROMPT.trim() ? '' : local;
+    if (next !== value) updateSettings({ reviewPrompt: next });
+    else if (v === '') setLocal(SYSTEM_PROMPT);
+  }
+
+  return (
+    <div className="field">
+      <div className="lbl row-lbl">
+        <span>Review prompt</span>
+        {custom && (
+          <button
+            className="ib"
+            style={{ width: 22, height: 22 }}
+            aria-label="Restore default prompt"
+            title="Restore default"
+            onClick={() => updateSettings({ reviewPrompt: '' })}
+          >
+            <RefreshIcon size={12} />
+          </button>
+        )}
+      </div>
+      <textarea
+        className={custom ? 'custom' : undefined}
+        value={local}
+        spellCheck={false}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => e.stopPropagation()}
+      />
+      <div className="note">The review's format stays fixed.</div>
     </div>
   );
 }

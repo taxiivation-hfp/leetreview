@@ -31,6 +31,7 @@ async function handle(msg: Request): Promise<Response> {
       const data = await claudeReviewer.review(msg.input, {
         apiKey: settings.anthropicKey,
         model: settings.reviewModel,
+        systemPrompt: settings.reviewPrompt,
       });
       return { ok: true, data };
     }

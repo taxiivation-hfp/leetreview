@@ -167,7 +167,7 @@ function PromptField({ value }: { value: string }) {
         onBlur={save}
         onKeyDown={(e) => e.stopPropagation()}
       />
-      <div className="note">The review's format stays fixed.</div>
+      <div className="note">Rubric and scoring stay fixed.</div>
     </div>
   );
 }

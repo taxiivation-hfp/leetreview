@@ -181,8 +181,8 @@ Review {
 - **Inputs (read on Review click):** transcript, pause data, problem title/description, and the current editor code. The code is saved as a snapshot with the review; the description is not stored permanently.
 - **Claude cannot transcribe audio**, which is why transcription uses a separate provider and key.
 
-### Review prompt: TBD
-The system prompt and output format are deferred until after more research. Ideas to evaluate: clarifying questions and edge cases before coding, brute force then optimization, time and space complexity stated, rambling or silent stretches (using pause data), filler count and clustering. Each review stores a `promptVersion` so results stay comparable.
+### Review prompt and rubric (v2)
+Reviews score six fixed criteria (understanding, approach, complexity, code, testing, communication) on a 1-4 hire scale: Strong no, Lean no, Lean hire, Strong hire. The final score is the equal-weight mean, computed in code. Each criterion gets a one-line justification quoting the transcript and 4 - score improvements. The persona part of the system prompt is editable in Settings; the rubric block and output schema are fixed so scores stay comparable. Anchors live in `src/lib/rubric.ts`. Each review stores a `promptVersion` (`v2`, or `v2-custom` with an edited prompt).
 
 ---
 

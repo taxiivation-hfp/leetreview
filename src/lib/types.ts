@@ -51,8 +51,33 @@ export interface Transcript {
   editedAt?: number;
 }
 
-/** Shape of the JSON stored in Review.output (promptVersion v1). */
+export type CriterionId =
+  | 'understanding'
+  | 'approach'
+  | 'complexity'
+  | 'code'
+  | 'testing'
+  | 'communication';
+
+/** 1 Strong no · 2 Lean no · 3 Lean hire · 4 Strong hire */
+export type Score = 1 | 2 | 3 | 4;
+
+export interface CriterionResult {
+  score: Score;
+  /** One line justifying the score, quoting the transcript. */
+  note: string;
+  /** 4 - score items, highest impact first. */
+  improvements: string[];
+}
+
+/** Shape of the JSON stored in Review.output (promptVersion v2 and later). */
 export interface ReviewOutput {
+  summary: string;
+  criteria: Record<CriterionId, CriterionResult>;
+}
+
+/** promptVersion v1 shape; old reviews still render with it. */
+export interface ReviewOutputV1 {
   summary: string;
   strengths: string[];
   weaknesses: string[];

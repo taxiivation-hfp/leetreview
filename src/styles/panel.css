@@ -524,6 +524,7 @@ svg {
 .r-head b {
   flex: 1;
   font-size: 15px;
+  white-space: nowrap;
 }
 .r-head .ic {
   color: var(--amber);
@@ -576,6 +577,88 @@ svg {
   width: 20px;
   flex: none;
   font-weight: 700;
+}
+.score-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.tm.big {
+  font-size: 34px;
+  line-height: 1;
+}
+.tm.big .of {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-mut);
+  margin-left: 2px;
+}
+.verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.verdict i {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  flex: none;
+}
+.hero-meters {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.meter {
+  display: inline-flex;
+  gap: 2px;
+  flex: none;
+}
+.meter i {
+  width: 14px;
+  height: 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.meter.sm i {
+  width: 9px;
+  height: 3px;
+  border-radius: 1px;
+}
+.crits {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.crit + .crit {
+  border-top: 1px solid var(--divider);
+  padding-top: 14px;
+}
+.crit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.r-card p.crit-note {
+  margin-bottom: 8px;
+}
+.r-card p.crit-note:last-child {
+  margin-bottom: 0;
+}
+.crit .r-item {
+  margin-bottom: 6px;
+  font-size: 12.5px;
+}
+.crit .r-item:last-child {
+  margin-bottom: 0;
 }
 .hist {
   position: relative;

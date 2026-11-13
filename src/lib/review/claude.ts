@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { PROMPT_VERSION, REVIEW_SCHEMA, SYSTEM_PROMPT, buildUserMessage } from '../../prompts/review';
-import type { ReviewOutput } from '../types';
+import { PROMPT_VERSION, REVIEW_SCHEMA, RUBRIC, SYSTEM_PROMPT, buildUserMessage } from '../../prompts/review';
+import { CRITERIA } from '../rubric';
+import type { ReviewOutput, Score } from '../types';
 import { ReviewError, type Reviewer, type ReviewResult } from './types';
 
 /**
@@ -32,7 +33,11 @@ export const claudeReviewer: Reviewer = {
               effort: 'medium',
               format: { type: 'json_schema', schema: REVIEW_SCHEMA },
             },
-            system: custom || SYSTEM_PROMPT,
+            // The rubric block is fixed; only the first block is user-editable.
+            system: [
+              { type: 'text', text: custom || SYSTEM_PROMPT },
+              { type: 'text', text: RUBRIC },
+            ],
             messages: [{ role: 'user', content: buildUserMessage(input) }],
           },
           { signal },
@@ -64,7 +69,7 @@ export const claudeReviewer: Reviewer = {
 
     let output: ReviewOutput;
     try {
-      output = JSON.parse(text) as ReviewOutput;
+      output = normalize(JSON.parse(text));
     } catch {
       throw new ReviewError('The review came back malformed; try again.', 'provider');
     }
@@ -73,3 +78,24 @@ export const claudeReviewer: Reviewer = {
     return { provider: claudeReviewer.id, model, promptVersion, output };
   },
 };
+
+/** Folds the schema's fix1..fixN fields into `improvements`; throws on a bad shape. */
+function normalize(raw: unknown): ReviewOutput {
+  const r = raw as { summary: unknown; criteria: Record<string, Record<string, unknown>> };
+  if (typeof r.summary !== 'string' || !r.criteria) throw new Error('shape');
+  const criteria = {} as ReviewOutput['criteria'];
+  for (const c of CRITERIA) {
+    const x = r.criteria[c.id];
+    if (!x) throw new Error(c.id);
+    const score = x.score;
+    if (score !== 1 && score !== 2 && score !== 3 && score !== 4) throw new Error('score');
+    const improvements = Object.keys(x)
+      .filter((k) => /^fix\d+$/.test(k))
+      .sort((a, b) => Number(a.slice(3)) - Number(b.slice(3)))
+      .map((k) => String(x[k]).trim())
+      .filter(Boolean)
+      .slice(0, 4 - score);
+    criteria[c.id] = { score: score as Score, note: String(x.note ?? ''), improvements };
+  }
+  return { summary: r.summary, criteria };
+}

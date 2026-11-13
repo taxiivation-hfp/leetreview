@@ -18,6 +18,7 @@ I built it because interview prep on your own has no feedback loop. You solve th
 | Sessions | Per-problem list, newest first, with playback, a pause-marked scrubber and silence stats. |
 | Transcribe | Manual, per session. Audio goes to Groq Whisper (`whisper-large-v3`) with a filler-preserving prompt. Fillers are highlighted, pauses shown inline, and nothing is ever stripped. Fix mishearings by hand afterwards; pauses keep their place. |
 | Review | Manual, per session. Transcript, pause data, problem text and your current editor code go to Claude (Sonnet 5.5 by default, switchable to Opus or Haiku). Scored on a fixed six-criterion rubric, 1-4 from Strong no to Strong hire, with a quoted justification and fixes per criterion. Every review is kept so you can compare attempts. |
+| History | Rubric scores over time across every problem. Add filters for difficulty, topic or problem, and switch between the overall score and one small chart per criterion. |
 | Settings | Keys, review model and prompt, pause threshold, silence sensitivity, microphone. |
 
 ## Screenshots

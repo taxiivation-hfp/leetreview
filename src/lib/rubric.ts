@@ -15,8 +15,6 @@ export interface Criterion {
   looksFor: string;
   /** What a 1, 2, 3 and 4 look like. */
   anchors: readonly [string, string, string, string];
-  /** Categorical series colour (dark slots 1-6, validated on the panel surfaces). */
-  color: string;
 }
 
 export const CRITERIA: readonly Criterion[] = [
@@ -30,7 +28,6 @@ export const CRITERIA: readonly Criterion[] = [
       'Restates the problem and names the main edge cases before designing.',
       'Also raises clarifying questions and checks their understanding on an example before designing.',
     ],
-    color: '#3987e5',
   },
   {
     id: 'approach',
@@ -42,7 +39,6 @@ export const CRITERIA: readonly Criterion[] = [
       'Starts from a brute force, then reaches the optimal approach with a stated reason.',
       'Weighs alternatives, justifies the data structures, and gets to the optimal approach efficiently.',
     ],
-    color: '#d95926',
   },
   {
     id: 'complexity',
@@ -54,7 +50,6 @@ export const CRITERIA: readonly Criterion[] = [
       'States time and space correctly for the final approach.',
       'Also states it for the brute force and explains what drives the cost.',
     ],
-    color: '#199e70',
   },
   {
     id: 'code',
@@ -66,7 +61,6 @@ export const CRITERIA: readonly Criterion[] = [
       'Correct and readable, with minor issues.',
       'Correct, clean and idiomatic; edge cases handled; matches what they said.',
     ],
-    color: '#c98500',
   },
   {
     id: 'testing',
@@ -78,7 +72,6 @@ export const CRITERIA: readonly Criterion[] = [
       'Dry-runs at least one example through the code.',
       'Traces normal and edge cases through the code, and finds and fixes their own bugs.',
     ],
-    color: '#d55181',
   },
   {
     id: 'communication',
@@ -90,7 +83,6 @@ export const CRITERIA: readonly Criterion[] = [
       'Mostly continuous and clear, with a few stalls.',
       'Continuous, structured narration that announces its silences ("let me think about X").',
     ],
-    color: '#008300',
   },
 ];
 

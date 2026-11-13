@@ -781,3 +781,222 @@ input[type='range'] {
 .recover span {
   flex: 1;
 }
+
+/* ---- history ---- */
+.history {
+  position: relative;
+  gap: 12px;
+}
+.h-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sys);
+}
+.h-bar .seg {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.add-filter {
+  appearance: none;
+  font-family: var(--sys);
+  cursor: pointer;
+  border: 1px dashed var(--border);
+  background: transparent;
+  max-width: 140px;
+}
+.add-filter:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.add-filter option,
+.add-filter optgroup {
+  background: var(--bg);
+  color: var(--fg);
+}
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tile {
+  flex: 1;
+  min-width: 96px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tile-v {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tile-v .tm {
+  font-size: 24px;
+  line-height: 1.1;
+}
+.chart-card {
+  padding: 12px 10px 8px;
+  position: relative;
+}
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chart {
+  width: 100%;
+}
+.chart svg:focus {
+  outline: none;
+}
+.chart svg:focus-visible {
+  outline: 1px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.chart .grid {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+.chart .ax {
+  fill: var(--fg-mut);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.chart .xhair {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1;
+}
+.chart .ln {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart .dot {
+  fill: var(--amber);
+  stroke: #353535;
+  stroke-width: 2;
+}
+.chart .dot.on {
+  fill: var(--amber-soft);
+}
+.multiples {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.mini {
+  padding: 10px 10px 6px;
+  border: 1px solid transparent;
+}
+.mini.weak {
+  border-color: rgba(255, 90, 60, 0.55);
+}
+.mini-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.mini-head .tm {
+  font-weight: 500;
+}
+.tip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  background: #1f1f1f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+.tip-v {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.tip-v .tm {
+  font-size: 18px;
+}
+.tip-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: 6px;
+}
+.tip-rows div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.tip-rows i,
+.att .sc i {
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  flex: none;
+}
+.tip-t {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attempts {
+  display: flex;
+  flex-direction: column;
+}
+.attempts .lbl {
+  margin: 4px 0 4px;
+}
+.att {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+.att .when {
+  width: 104px;
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.att .ttl {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.att .dif {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.att .sc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 40px;
+  justify-content: flex-end;
+}

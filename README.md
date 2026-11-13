@@ -23,7 +23,22 @@ I built it because interview prep on your own has no feedback loop. You solve th
 
 ## Screenshots
 
-<!-- TODO: screenshots/record.png, sessions.png, detail.png, review.png -->
+<table>
+  <tr>
+    <td><img src="screenshots/record.png" width="460" alt="Recording, with the live waveform and quiet indicator"></td>
+    <td><img src="screenshots/review.png" width="460" alt="Transcript with fillers and pauses marked, beside the rubric review"></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/history.png" width="460" alt="History of overall scores across ten weeks of attempts"></td>
+    <td><img src="screenshots/criteria.png" width="460" alt="History split into one chart per criterion, weakest outlined"></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/sessions.png" width="460" alt="Sessions for one problem, marked transcribed and reviewed"></td>
+    <td><img src="screenshots/settings.png" width="460" alt="Settings with the mic test running"></td>
+  </tr>
+</table>
+
+Scores and review text are demo data seeded by `scripts/screenshots.mjs`, which regenerates these images.
 
 ## Architecture
 

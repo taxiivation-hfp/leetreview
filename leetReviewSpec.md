@@ -20,7 +20,7 @@ A Chrome extension that turns LeetCode practice into a mock interview. You think
 - Cross-problem library page.
 - Auto-detecting submission results.
 - Sites other than leetcode.com.
-- Transcript editing, tags, or notes.
+- Tags or notes.
 - Chrome Web Store listing.
 - Local (in-browser) transcription and Gemini support (both v2).
 

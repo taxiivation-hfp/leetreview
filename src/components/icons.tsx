@@ -93,6 +93,19 @@ export const SparkIcon = ({ size = 15, ...p }: P) => (
   </svg>
 );
 
+export const PencilIcon = ({ size = 14, ...p }: P) => (
+  <svg
+    {...base(size, p)}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" />
+  </svg>
+);
+
 export const CopyIcon = ({ size = 14, ...p }: P) => (
   <svg {...base(size, p)} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
     <rect x="9" y="9" width="11" height="11" rx="2" />

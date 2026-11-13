@@ -398,6 +398,41 @@ svg {
   margin-bottom: 6px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+.lbl-acts {
+  display: flex;
+  gap: 2px;
+}
+.ib.xs {
+  width: 22px;
+  height: 22px;
+}
+.ib.ghost.on {
+  color: var(--amber);
+}
+.tcard.editing {
+  display: flex;
+  flex-direction: column;
+  outline: 1px solid var(--amber);
+  outline-offset: -1px;
+}
+.t-edit {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.t-edit::-webkit-scrollbar {
+  display: none;
 }
 .pz {
   display: inline-flex;

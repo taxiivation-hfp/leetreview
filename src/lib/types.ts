@@ -47,6 +47,8 @@ export interface Transcript {
   words?: TranscriptWord[];
   segments?: TranscriptSegment[];
   fillerCount?: number;
+  /** Set when the user corrected the text by hand. */
+  editedAt?: number;
 }
 
 /** Shape of the JSON stored in Review.output (promptVersion v1). */

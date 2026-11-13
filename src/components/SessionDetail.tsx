@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getDescription, getEditorCode } from '../adapters/leetcode';
-import { tokenize, toMarkedText } from '../lib/alignPauses';
+import { countFillers, editableText, isEdited, realignWords, tokenize, toMarkedText } from '../lib/alignPauses';
 import {
   appendReview,
   db,
@@ -9,12 +9,24 @@ import {
   getTranscriptForSession,
   listReviewsForSession,
   setTranscript,
+  updateTranscript,
 } from '../lib/db';
 import { fmtClock, fmtSeconds, fmtWhen } from '../lib/format';
 import { blobToBase64, sendRequest, type ReviewData, type TranscribeData } from '../lib/messages';
 import { pauseStats } from '../lib/pauses';
 import type { Review, Session } from '../lib/types';
-import { BackIcon, CheckIcon, CopyIcon, PauseIcon, PlayIcon, RefreshIcon, SparkIcon, TrashIcon } from './icons';
+import {
+  BackIcon,
+  CheckIcon,
+  CloseIcon,
+  CopyIcon,
+  PauseIcon,
+  PencilIcon,
+  PlayIcon,
+  RefreshIcon,
+  SparkIcon,
+  TrashIcon,
+} from './icons';
 import { ReviewPane } from './ReviewPane';
 
 interface Props {
@@ -33,6 +45,9 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<'delete' | 'retranscribe' | null>(null);
   const [copied, setCopied] = useState(false);
+  /** Non-null while the transcript is being edited. */
+  const [draft, setDraft] = useState<string | null>(null);
+  const editing = draft !== null;
 
   // A session that already has a review opens straight onto it.
   useEffect(() => {
@@ -109,9 +124,27 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
     setTimeout(() => setCopied(false), 1200);
   }
 
+  async function saveEdit() {
+    if (!transcript || draft === null) return;
+    const text = draft.trim();
+    if (!text) return;
+    if (isEdited(transcript, text)) {
+      await updateTranscript(transcript.id, {
+        text,
+        words: transcript.words?.length ? realignWords(transcript.words, text) : transcript.words,
+        fillerCount: countFillers(text),
+        editedAt: Date.now(),
+      });
+    }
+    setDraft(null);
+  }
+
   const stats = pauseStats(session.pauses);
   const current: Review | undefined = reviews.find((r) => r.id === selectedReview) ?? reviews[0];
   const showReview = reviewOpen && current;
+  // A hand edit after the latest review makes that review stale.
+  const stale = !!transcript?.editedAt && reviews.length > 0 && transcript.editedAt > reviews[0]!.createdAt;
+  const showOnly = reviews.length > 0 && !reviewOpen && !stale;
 
   return (
     <div className={'split' + (narrow ? ' narrow' : '') + (showReview ? '' : ' solo')}>
@@ -160,16 +193,54 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
             )}
           </div>
 
-          <div className="card tcard">
+          <div className={'card tcard' + (editing ? ' editing' : '')}>
             <div className="lbl">
               <span>Transcript</span>
-              {transcript && (
-                <button className="ib ghost" style={{ width: 22, height: 22 }} aria-label="Copy transcript" onClick={copyTranscript}>
-                  {copied ? <CheckIcon size={12} /> : <CopyIcon size={13} />}
-                </button>
-              )}
+              {transcript &&
+                (editing ? (
+                  <span className="lbl-acts">
+                    <button className="ib ghost xs" aria-label="Cancel edit" onClick={() => setDraft(null)}>
+                      <CloseIcon size={11} />
+                    </button>
+                    <button
+                      className="ib ghost xs on"
+                      aria-label="Save transcript"
+                      disabled={!draft.trim()}
+                      onClick={saveEdit}
+                    >
+                      <CheckIcon size={13} />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="lbl-acts">
+                    <button
+                      className="ib ghost xs"
+                      aria-label="Edit transcript"
+                      disabled={busy !== null}
+                      onClick={() => setDraft(editableText(transcript))}
+                    >
+                      <PencilIcon size={12} />
+                    </button>
+                    <button className="ib ghost xs" aria-label="Copy transcript" onClick={copyTranscript}>
+                      {copied ? <CheckIcon size={12} /> : <CopyIcon size={13} />}
+                    </button>
+                  </span>
+                ))}
             </div>
-            {transcript ? (
+            {transcript && editing ? (
+              <textarea
+                className="t-edit"
+                aria-label="Transcript text"
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  // Keep LeetCode's page hotkeys out of the editor.
+                  e.stopPropagation();
+                  if (e.key === 'Escape') setDraft(null);
+                }}
+              />
+            ) : transcript ? (
               <TranscriptText tokens={tokenize(transcript, session.pauses)} />
             ) : (
               <div className="mut" style={{ fontSize: 13, lineHeight: 1.5 }}>
@@ -187,7 +258,7 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
                   <CheckIcon /> Replace transcript?
                 </button>
               ) : (
-                <button className="act" disabled={busy !== null} onClick={() => setConfirm('retranscribe')}>
+                <button className="act" disabled={busy !== null || editing} onClick={() => setConfirm('retranscribe')}>
                   {busy === 'transcribe' ? <span className="spin" /> : <RefreshIcon />}
                   Re-transcribe
                 </button>
@@ -200,12 +271,12 @@ export function SessionDetail({ sessionId, narrow, onBack }: Props) {
             )}
             {transcript && (
               <button
-                className={'act' + (reviews.length === 0 ? ' hot' : '')}
-                disabled={busy !== null}
-                onClick={() => (reviews.length > 0 && !reviewOpen ? setReviewOpen(true) : review())}
+                className={'act' + (reviews.length === 0 || stale ? ' hot' : '')}
+                disabled={busy !== null || editing}
+                onClick={() => (showOnly ? setReviewOpen(true) : review())}
               >
                 {busy === 'review' ? <span className="spin" /> : <SparkIcon />}
-                {reviews.length > 0 && !reviewOpen ? 'Show review' : 'Review'}
+                {showOnly ? 'Show review' : 'Review'}
               </button>
             )}
           </div>

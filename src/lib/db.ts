@@ -93,6 +93,14 @@ export async function setTranscript(t: Omit<Transcript, 'id'>): Promise<Transcri
   return transcript;
 }
 
+/** In-place correction of an existing transcript (hand edits). */
+export function updateTranscript(
+  id: string,
+  patch: Pick<Transcript, 'text' | 'words' | 'fillerCount' | 'editedAt'>,
+) {
+  return db.transcripts.update(id, patch);
+}
+
 export function getTranscriptForSession(sessionId: string) {
   return db.transcripts.where('sessionId').equals(sessionId).first();
 }

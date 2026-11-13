@@ -16,7 +16,7 @@ I built it because interview prep on your own has no feedback loop. You solve th
 | Record | Mic-only recording at 32 kbps Opus with a count-up timer and live waveform. Saves chunks to IndexedDB every 5 s, so a crashed tab can be recovered. |
 | Pause detection | Silences of 5 s or more (adjustable, with a sensitivity slider and mic test) are logged with timestamps. |
 | Sessions | Per-problem list, newest first, with playback, a pause-marked scrubber and silence stats. |
-| Transcribe | Manual, per session. Audio goes to Groq Whisper (`whisper-large-v3`) with a filler-preserving prompt. Fillers are highlighted, pauses shown inline, and nothing is ever stripped. |
+| Transcribe | Manual, per session. Audio goes to Groq Whisper (`whisper-large-v3`) with a filler-preserving prompt. Fillers are highlighted, pauses shown inline, and nothing is ever stripped. Fix mishearings by hand afterwards; pauses keep their place. |
 | Review | Manual, per session. Transcript, pause data, problem text and your current editor code go to Claude (Sonnet 5.5 by default, switchable to Opus or Haiku). Every review is kept so you can compare attempts. |
 | Settings | Keys, review model and prompt, pause threshold, silence sensitivity, microphone. |
 

@@ -61,7 +61,7 @@ Manifest V3, TypeScript, WXT, React in a Shadow DOM, Dexie over IndexedDB. No se
 
 ```sh
 git clone https://github.com/taxiivation-hfp/leetreview.git
-cd leetReview
+cd leetreview
 npm install
 npm run build
 ```

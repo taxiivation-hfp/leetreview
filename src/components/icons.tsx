@@ -146,3 +146,29 @@ export const EyeIcon = ({ size = 14, off = false, ...p }: P & { off?: boolean })
     {off && <path d="M4 4l16 16" />}
   </svg>
 );
+
+export const BulbIcon = ({ size = 14, ...p }: P) => (
+  <svg
+    {...base(size, p)}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0012 3z" />
+  </svg>
+);
+
+export const SendIcon = ({ size = 14, ...p }: P) => (
+  <svg
+    {...base(size, p)}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 19V5M5 12l7-7 7 7" />
+  </svg>
+);

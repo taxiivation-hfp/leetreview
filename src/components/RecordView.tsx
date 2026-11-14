@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchProblemMeta } from '../adapters/leetcode';
 import {
   backfillProblemMeta,
+  chatForSession,
   createSession,
   discardRecording,
   finalizeRecording,
@@ -11,6 +12,7 @@ import { fmtClock, fmtSeconds } from '../lib/format';
 import { startRecording, stopRecording, useRecordingState } from '../lib/recordingStore';
 import type { Settings } from '../lib/settings';
 import type { ProblemInfo, RecordingMeta } from '../lib/types';
+import { ClarifyChat } from './ClarifyChat';
 import { MicIcon, StopIcon } from './icons';
 import { Waveform } from './Waveform';
 
@@ -55,6 +57,7 @@ export function RecordView({ problem, settings }: Props) {
         pauses: done.result.pauses,
         blob: done.result.blob,
         mimeType: done.result.mimeType,
+        chat: await chatForSession(done.problem.slug),
       });
       setLastSessionId(s.id);
       void backfillProblemMeta(fetchProblemMeta);
@@ -84,56 +87,59 @@ export function RecordView({ problem, settings }: Props) {
   const showTimer = recording || elapsed > 0;
 
   return (
-    <div className="body rec-wrap">
-      <div className="rec-col">
-        {orphans.map((o) => (
-          <div className="recover" key={o.recordingId}>
-            <span>
-              Unfinished recording on <b>{o.meta.problemTitle}</b> ({fmtClock(o.meta.elapsedMs)})
-            </span>
-            <button className="act sm hot" onClick={() => recover(o.recordingId)}>
-              Recover
-            </button>
-            <button className="act sm" onClick={() => discard(o.recordingId)}>
-              Discard
-            </button>
-          </div>
-        ))}
+    <div className="body rec-wrap rec-split">
+      <div className="rec-top">
+        <div className="rec-col">
+          {orphans.map((o) => (
+            <div className="recover" key={o.recordingId}>
+              <span>
+                Unfinished recording on <b>{o.meta.problemTitle}</b> ({fmtClock(o.meta.elapsedMs)})
+              </span>
+              <button className="act sm hot" onClick={() => recover(o.recordingId)}>
+                Recover
+              </button>
+              <button className="act sm" onClick={() => discard(o.recordingId)}>
+                Discard
+              </button>
+            </div>
+          ))}
 
-        <div className="rec-head">
-          <div className={'lbl' + (recording ? ' live' : '')}>
-            {recording ? '● Recording' : lastSessionId ? 'Saved' : 'Ready'}
-            {recording && rec.problem && rec.problem.slug !== problem.slug && (
-              <span className="mut"> · {rec.problem.title}</span>
+          <div className="rec-head">
+            <div className={'lbl' + (recording ? ' live' : '')}>
+              {recording ? '● Recording' : lastSessionId ? 'Saved' : 'Ready'}
+              {recording && rec.problem && rec.problem.slug !== problem.slug && (
+                <span className="mut"> · {rec.problem.title}</span>
+              )}
+            </div>
+            <div className="tm">{showTimer ? fmtClock(elapsed) : '00:00'}</div>
+            {recording && quietMs >= 2000 && (
+              <div className="quiet">quiet {fmtSeconds(quietMs)}</div>
             )}
           </div>
-          <div className="tm">{showTimer ? fmtClock(elapsed) : '00:00'}</div>
-          {recording && quietMs >= 2000 && (
-            <div className="quiet">quiet {fmtSeconds(quietMs)}</div>
+
+          <div className="rb-row">
+            <button
+              className={'rb' + (recording ? '' : ' idle')}
+              aria-label={recording ? 'Stop recording' : 'Start recording'}
+              onClick={onToggle}
+              disabled={busy}
+            >
+              {recording ? <StopIcon /> : <MicIcon size={38} />}
+            </button>
+          </div>
+
+          <Waveform recorder={recording ? rec.recorder : null} />
+
+          {rec.error ? (
+            <div className="err hint">{rec.error}</div>
+          ) : (
+            <div className="mut hint">
+              {lastSessionId ? 'Saved. Find it under Sessions.' : 'Saved on this device when you stop.'}
+            </div>
           )}
         </div>
-
-        <div className="rb-row">
-          <button
-            className={'rb' + (recording ? '' : ' idle')}
-            aria-label={recording ? 'Stop recording' : 'Start recording'}
-            onClick={onToggle}
-            disabled={busy}
-          >
-            {recording ? <StopIcon /> : <MicIcon size={38} />}
-          </button>
-        </div>
-
-        <Waveform recorder={recording ? rec.recorder : null} />
-
-        {rec.error ? (
-          <div className="err hint">{rec.error}</div>
-        ) : (
-          <div className="mut hint">
-            {lastSessionId ? 'Saved. Find it under Sessions.' : 'Saved on this device when you stop.'}
-          </div>
-        )}
       </div>
+      <ClarifyChat problem={problem} settings={settings} />
     </div>
   );
 }

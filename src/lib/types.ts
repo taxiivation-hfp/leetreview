@@ -18,6 +18,43 @@ export interface Session {
   reviewIds: string[];
   /** LeetCode topic tags; undefined until looked up (see backfillProblemMeta). */
   topics?: string[];
+  /** Clarification chat copied on at stop when the user chose to send it to review. */
+  chat?: SessionChat;
+}
+
+/** What a bot reply did: answered a question, steered (a hint), or approved a full plan. */
+export type ChatKind = 'clarify' | 'hint' | 'go' | 'other';
+/** Hint ladder rung: a pointed question, the key insight, or a concrete step. */
+export type HintSize = 'nudge' | 'idea' | 'step';
+
+export interface ChatMessage {
+  role: 'user' | 'bot';
+  text: string;
+  /** Epoch ms; placed against the recording's start when reviewed. */
+  at: number;
+  kind?: ChatKind;
+  size?: HintSize;
+}
+
+/** The clarification chat for one problem; it outlives sessions until cleared. */
+export interface ProblemChat {
+  slug: string;
+  messages: ChatMessage[];
+  sendToReview: boolean;
+}
+
+/** Hidden answer key the chat bot works from, cached per problem and language. */
+export interface LogicSheet {
+  slug: string;
+  language: string;
+  text: string;
+  createdAt: number;
+}
+
+export interface SessionChat {
+  messages: ChatMessage[];
+  /** The logic sheet in force when the session was saved, for the reviewer. */
+  sheet: string | null;
 }
 
 export interface Audio {

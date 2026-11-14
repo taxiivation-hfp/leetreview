@@ -2,6 +2,10 @@ import Dexie, { type EntityTable } from 'dexie';
 import { nanoid } from 'nanoid';
 import type {
   Audio,
+  ChatMessage,
+  LogicSheet,
+  ProblemChat,
+  SessionChat,
   Pause,
   ProblemInfo,
   ProblemMeta,
@@ -22,6 +26,8 @@ class LeetReviewDB extends Dexie {
   transcripts!: EntityTable<Transcript, 'id'>;
   reviews!: EntityTable<Review, 'id'>;
   recordingChunks!: EntityTable<RecordingChunk, 'seq'>;
+  chats!: EntityTable<ProblemChat, 'slug'>;
+  logicSheets!: Dexie.Table<LogicSheet, [string, string]>;
 
   constructor() {
     super('leetreview');
@@ -31,6 +37,10 @@ class LeetReviewDB extends Dexie {
       transcripts: 'id, sessionId',
       reviews: 'id, sessionId, createdAt',
       recordingChunks: '++seq, recordingId',
+    });
+    this.version(2).stores({
+      chats: 'slug',
+      logicSheets: '[slug+language]',
     });
   }
 }
@@ -50,6 +60,7 @@ export async function createSession(input: {
   pauses: Pause[];
   blob: Blob;
   mimeType: string;
+  chat?: SessionChat;
 }): Promise<Session> {
   const session: Session = {
     id: nanoid(),
@@ -61,6 +72,7 @@ export async function createSession(input: {
     audioBlobId: nanoid(),
     pauses: input.pauses,
     reviewIds: [],
+    ...(input.chat && { chat: input.chat }),
   };
   await db.transaction('rw', db.sessions, db.audio, async () => {
     await db.audio.add({ id: session.audioBlobId, blob: input.blob, mimeType: input.mimeType });
@@ -186,7 +198,60 @@ export async function finalizeRecording(recordingId: string) {
     pauses: meta.pauses,
     blob,
     mimeType: meta.mimeType,
+    chat: await chatForSession(meta.problemSlug),
   });
   await discardRecording(recordingId);
   return session;
+}
+
+// ---------- clarification chat ----------
+
+export function getChat(slug: string) {
+  return db.chats.get(slug);
+}
+
+export async function appendChatMessages(slug: string, messages: ChatMessage[]) {
+  await db.transaction('rw', db.chats, async () => {
+    const c = await db.chats.get(slug);
+    await db.chats.put({
+      slug,
+      messages: [...(c?.messages ?? []), ...messages],
+      sendToReview: c?.sendToReview ?? true,
+    });
+  });
+}
+
+/** Empties the chat but keeps the send-to-review choice and the cached sheet. */
+export function clearChat(slug: string) {
+  return db.chats.update(slug, { messages: [] });
+}
+
+export async function setSendToReview(slug: string, on: boolean) {
+  await db.transaction('rw', db.chats, async () => {
+    const c = await db.chats.get(slug);
+    await db.chats.put({ slug, messages: c?.messages ?? [], sendToReview: on });
+  });
+}
+
+export async function getSheet(slug: string, language: string) {
+  return db.logicSheets.get([slug, language]);
+}
+
+export function putSheet(sheet: LogicSheet) {
+  return db.logicSheets.put(sheet);
+}
+
+/**
+ * Snapshot of the problem's chat for a session being saved, or undefined when
+ * the chat is empty or the user turned sending off. Carries the newest sheet.
+ */
+export async function chatForSession(slug: string): Promise<SessionChat | undefined> {
+  const c = await db.chats.get(slug);
+  if (!c || !c.sendToReview || c.messages.length === 0) return undefined;
+  const sheets = await db.logicSheets
+    .where('[slug+language]')
+    .between([slug, Dexie.minKey], [slug, Dexie.maxKey])
+    .toArray();
+  sheets.sort((a, b) => b.createdAt - a.createdAt);
+  return { messages: c.messages, sheet: sheets[0]?.text ?? null };
 }

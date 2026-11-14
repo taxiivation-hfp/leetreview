@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { PauseDetector } from '../lib/pauses';
 import { listMics } from '../lib/recorder';
-import { REVIEW_MODELS, updateSettings, type ReviewModel, type Settings } from '../lib/settings';
+import {
+  LANGUAGES,
+  REVIEW_MODELS,
+  updateSettings,
+  type Language,
+  type ReviewModel,
+  type Settings,
+} from '../lib/settings';
 import { SYSTEM_PROMPT } from '../prompts/review';
 import { EyeIcon, RefreshIcon } from './icons';
 
@@ -42,6 +49,34 @@ export function SettingsView({ settings }: { settings: Settings }) {
       </div>
 
       <PromptField value={settings.reviewPrompt} />
+
+      <div className="field">
+        <div className="lbl">Solution language</div>
+        <select
+          value={settings.language}
+          onChange={(e) => updateSettings({ language: e.target.value as Language })}
+        >
+          {LANGUAGES.map((l) => (
+            <option key={l} value={l}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="field">
+        <div className="lbl">Clarification chat model</div>
+        <select
+          value={settings.chatModel}
+          onChange={(e) => updateSettings({ chatModel: e.target.value as ReviewModel })}
+        >
+          {REVIEW_MODELS.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="field">
         <div className="lbl">Pause threshold · seconds</div>

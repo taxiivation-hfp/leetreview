@@ -1,5 +1,20 @@
 export type ReviewModel = 'claude-sonnet-5-5' | 'claude-opus-5-5' | 'claude-haiku-5-5';
 
+/** Languages offered by LeetCode's editor; the clarification sheet adds idioms for the chosen one. */
+export const LANGUAGES = [
+  'Python3',
+  'Java',
+  'C++',
+  'JavaScript',
+  'TypeScript',
+  'Go',
+  'C#',
+  'Rust',
+  'Kotlin',
+  'Swift',
+] as const;
+export type Language = (typeof LANGUAGES)[number];
+
 export interface Settings {
   groqKey: string;
   anthropicKey: string;
@@ -11,6 +26,10 @@ export interface Settings {
   micDeviceId: string;
   /** Reviewer system prompt; empty means the built-in one. */
   reviewPrompt: string;
+  /** Answers clarification chat turns; the hidden logic sheet is always built by Sonnet. */
+  chatModel: ReviewModel;
+  /** Solution language the clarification chat assumes. */
+  language: Language;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -21,6 +40,8 @@ export const DEFAULT_SETTINGS: Settings = {
   silenceDb: -50,
   micDeviceId: '',
   reviewPrompt: '',
+  chatModel: 'claude-haiku-5-5',
+  language: 'Python3',
 };
 
 export const REVIEW_MODELS: { id: ReviewModel; label: string }[] = [

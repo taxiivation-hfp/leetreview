@@ -94,7 +94,10 @@ export function ClarifyChat({ problem, settings }: { problem: ProblemInfo; setti
             aria-label="Clear chat"
             title="Clear"
             disabled={!messages.length || busy !== null}
-            onClick={() => clearChat(slug)}
+            onClick={() => {
+              setError(null);
+              void clearChat(slug);
+            }}
           >
             <RefreshIcon size={12} />
           </button>

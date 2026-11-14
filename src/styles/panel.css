@@ -236,20 +236,43 @@ svg {
   padding-bottom: 14px;
 }
 .rec-top {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   width: 100%;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   overflow-y: auto;
   scrollbar-width: none;
+  /* The recorder scales to its own half, not the whole pane. */
+  container-type: size;
+}
+.rec-top .rec-col {
+  gap: clamp(8px, 4.5cqh, 22px);
+}
+.rec-top .rec-col > * {
+  flex-shrink: 0;
+}
+.rec-top .rec-head .tm {
+  font-size: clamp(32px, 21cqh, 72px);
+}
+.rec-top .rb {
+  width: clamp(56px, 28cqh, 104px);
+  height: clamp(56px, 28cqh, 104px);
+}
+.rec-top .rb-row {
+  /* Room for the button's 22px glow ring so it never overlaps the timer or waveform. */
+  margin: 14px 0;
+}
+.rec-top .wave {
+  height: clamp(30px, 14cqh, 60px);
 }
 .rec-top::-webkit-scrollbar {
   display: none;
 }
 .chat {
   flex: 1 1 0;
-  min-height: 170px;
+  min-height: 0;
   width: 100%;
   max-width: 440px;
   display: flex;

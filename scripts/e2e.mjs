@@ -1,6 +1,6 @@
 // End-to-end smoke test over the Chrome DevTools Protocol. Needs Chrome for Testing
 // (stable Chrome 137+ ignores --load-extension): npx @puppeteer/browsers install chrome@stable
-// Usage: node scripts/e2e.mjs <chrome.exe> <path to .output/chrome-mv3> <outDir> [open geom record sessions nokey narrow native nav code fit history drill ...]
+// Usage: node scripts/e2e.mjs <chrome.exe> <path to .output/chrome-mv3> <outDir> [open geom record sessions nokey narrow native nav code fit history drill chat chatclear ...]
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -184,6 +184,7 @@ try {
       await cdp.eval("document.getElementById('leetreview-host').shadowRoot.querySelector('.row')?.click()");
       await sleep(800);
       say('detail', await cdp.eval("document.getElementById('leetreview-host').shadowRoot.querySelector('.detail')?.textContent.slice(0,160)"));
+      say('session chat', await cdp.eval("(()=>{const c=document.getElementById('leetreview-host').shadowRoot.querySelector('.chat-card');if(!c)return 'none';c.querySelector('.chat-toggle').click();return 'hints '+c.querySelector('.hints').textContent})()"));
       await cdp.shot('07-detail.png');
     } else if (step === 'edit') {
       // Seed a timestamped transcript (and one pause) on the newest session through
@@ -372,6 +373,54 @@ try {
       await sleep(600);
       const again = await cdp.eval(state);
       say('history after chip switch', again, again === before ? 'SAME' : 'CHANGED');
+    } else if (step === 'chat' || step === 'chatclear') {
+      // 'chat': seed a clarification chat, check markers and counter, flip the review
+      // toggle, and send without a key (expects the key error, message kept).
+      // Run 'record sessions' after it to see the chat land on the session.
+      // 'chatclear': Clear empties the chat.
+      const sr = "document.getElementById('leetreview-host').shadowRoot";
+      const chip = (l) => cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='${l}').click()`);
+      const state = `JSON.stringify({hints:${sr}.querySelector('.chat .hints')?.textContent,msgs:${sr}.querySelectorAll('.chat .msg:not(.pending)').length,
+        go:${sr}.querySelectorAll('.chat .msg.go').length,rungs:${sr}.querySelectorAll('.chat .msg.hint .rungs i.f').length,
+        toggle:${sr}.querySelector('.chat-head [aria-pressed]')?.getAttribute('aria-pressed'),err:${sr}.querySelector('.chat ~ .err, .chat .err')?.textContent})`;
+      if (step === 'chat') {
+        const t = Date.now() - 60000;
+        const msgs = [
+          { role: 'user', text: 'Can the array be empty?', at: t },
+          { role: 'bot', text: 'No, it has at least two numbers.', at: t + 1000, kind: 'clarify' },
+          { role: 'user', text: 'Nested loops over every pair?', at: t + 2000 },
+          { role: 'bot', text: 'That works; can you avoid the second loop?', at: t + 3000, kind: 'hint', size: 'nudge' },
+          { role: 'user', text: 'Store seen values in a map, look up target minus current.', at: t + 4000 },
+          { role: 'bot', text: 'Works, O(n); go ahead.', at: t + 5000, kind: 'go' },
+        ];
+        say('seed chat', await cdp.eval(`(async()=>{const db=await new Promise(r=>{const q=indexedDB.open('leetreview');q.onsuccess=()=>r(q.result)});
+          const tx=db.transaction('chats','readwrite');tx.objectStore('chats').put({slug:'two-sum',messages:${JSON.stringify(msgs)},sendToReview:true});
+          await new Promise(r=>tx.oncomplete=r);return 'ok'})()`));
+        await chip('Sessions');
+        await sleep(300);
+        await chip('Record');
+        await sleep(800);
+        say('chat seeded', await cdp.eval(state));
+        await cdp.shot('30-chat.png');
+        await cdp.eval(`${sr}.querySelector('.chat-head [aria-pressed]').click()`);
+        await sleep(300);
+        say('toggle off', await cdp.eval(state));
+        await cdp.eval(`${sr}.querySelector('.chat-head [aria-pressed]').click()`);
+        await sleep(300);
+        await cdp.eval(`(()=>{const t=${sr}.querySelector('.chat-in textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(t,'What if two answers exist?');t.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+        await sleep(200);
+        await cdp.eval(`${sr}.querySelector('.chat-in .send').click()`);
+        await sleep(2500);
+        say('send without key', await cdp.eval(state));
+        await cdp.shot('31-chat-nokey.png');
+      } else {
+        await chip('Record');
+        await sleep(600);
+        await cdp.eval(`${sr}.querySelector('[aria-label="Clear chat"]').click()`);
+        await sleep(500);
+        say('after clear', await cdp.eval(state));
+        await cdp.shot('32-chat-cleared.png');
+      }
     } else if (step === 'meta') {
       // Probe the same-origin GraphQL query the adapter uses for difficulty + topic tags.
       say('graphql', await cdp.eval(`fetch('/graphql/',{method:'POST',headers:{'content-type':'application/json'},

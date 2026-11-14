@@ -1,5 +1,6 @@
 import { base64ToBlob, type Request, type Response } from '../lib/messages';
 import { claudeReviewer } from '../lib/review/claude';
+import { buildSheet, chatReply } from '../lib/review/clarify';
 import { ReviewError } from '../lib/review/types';
 import { getSettings } from '../lib/settings';
 import { groqTranscriber } from '../lib/transcribe/groq';
@@ -35,6 +36,10 @@ async function handle(msg: Request): Promise<Response> {
       });
       return { ok: true, data };
     }
+    case 'CLARIFY_SHEET':
+      return { ok: true, data: await buildSheet(msg.input, settings.anthropicKey) };
+    case 'CLARIFY_CHAT':
+      return { ok: true, data: await chatReply(msg.input, settings.chatModel, settings.anthropicKey) };
     default:
       return { ok: false, error: 'Unknown request' };
   }

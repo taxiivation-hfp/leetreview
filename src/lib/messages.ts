@@ -1,3 +1,4 @@
+import type { ChatInput, ChatReply, SheetInput } from './review/clarify';
 import type { ReviewInput, ReviewResult } from './review/types';
 import type { TranscriptResult } from './transcribe/types';
 
@@ -11,7 +12,9 @@ import type { TranscriptResult } from './transcribe/types';
  */
 export type Request =
   | { type: 'TRANSCRIBE'; audioBase64: string; mimeType: string }
-  | { type: 'REVIEW'; input: ReviewInput };
+  | { type: 'REVIEW'; input: ReviewInput }
+  | { type: 'CLARIFY_SHEET'; input: SheetInput }
+  | { type: 'CLARIFY_CHAT'; input: ChatInput };
 
 export type Response<T = unknown> =
   | { ok: true; data: T }
@@ -19,6 +22,8 @@ export type Response<T = unknown> =
 
 export type TranscribeData = TranscriptResult;
 export type ReviewData = ReviewResult;
+export type SheetData = string;
+export type ChatData = ChatReply;
 
 export function sendRequest<T>(req: Request): Promise<Response<T>> {
   return browser.runtime.sendMessage(req) as Promise<Response<T>>;

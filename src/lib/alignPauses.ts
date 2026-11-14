@@ -61,6 +61,42 @@ export function toMarkedText(transcript: Transcript, pauses: Pause[]): string {
     .replace(/\s+([.,!?;:])/g, '$1');
 }
 
+/**
+ * Marked text with chat lines interleaved by time (ms from the recording
+ * start). Each note sits on its own line before the first word spoken after
+ * it, the same rule pauses follow; without word timestamps notes go last.
+ */
+export function toMarkedTextWithNotes(
+  transcript: Transcript,
+  pauses: Pause[],
+  notes: { atMs: number; text: string }[],
+): string {
+  if (notes.length === 0) return toMarkedText(transcript, pauses);
+  const events = [
+    ...pauses.map((p) => ({ at: p.startMs, text: `[${Math.round(p.durationMs / 1000)}s pause]`, line: false })),
+    ...notes.map((n) => ({ at: n.atMs, text: n.text, line: true })),
+  ].sort((a, b) => a.at - b.at);
+
+  const parts: { text: string; line: boolean }[] = [];
+  let ei = 0;
+  if (transcript.words && transcript.words.length > 0) {
+    for (const w of transcript.words) {
+      while (ei < events.length && events[ei]!.at <= w.startMs) parts.push(events[ei++]!);
+      parts.push({ text: w.word, line: false });
+    }
+  } else {
+    parts.push({ text: transcript.text, line: false });
+  }
+  parts.push(...events.slice(ei));
+
+  let out = '';
+  for (const p of parts) {
+    if (p.line) out += `\n${p.text}\n`;
+    else out += (out && !out.endsWith('\n') ? ' ' : '') + p.text;
+  }
+  return out.trim().replace(/[ \t]+([.,!?;:])/g, '$1');
+}
+
 // ---------- editing ----------
 
 const normWord = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}']+/gu, '');

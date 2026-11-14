@@ -148,7 +148,7 @@ export function ClarifyChat({ problem, settings }: { problem: ProblemInfo; setti
   );
 }
 
-function Bubble({ m }: { m: ChatMessage }) {
+export function Bubble({ m }: { m: ChatMessage }) {
   return (
     <div className={`msg ${m.role}` + (m.kind ? ` ${m.kind}` : '')}>
       {m.kind === 'go' && <CheckIcon size={13} className="mk" aria-label="Go ahead" />}

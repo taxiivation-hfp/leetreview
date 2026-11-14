@@ -91,3 +91,10 @@ export const CHAT_SCHEMA = {
   required: ['kind', 'size', 'text'],
   additionalProperties: false,
 };
+
+/** One chat message as the reviewer reads it, e.g. `bot (hint·idea): ...`. */
+export function chatLine(m: ChatMessage): string {
+  if (m.role === 'user') return `you: ${m.text}`;
+  const tag = [m.kind, m.size].filter(Boolean).join('·');
+  return `bot${tag ? ` (${tag})` : ''}: ${m.text}`;
+}

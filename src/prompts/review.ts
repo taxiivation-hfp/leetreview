@@ -2,9 +2,10 @@ import type { ReviewInput } from '../lib/review/types';
 import { pauseStats } from '../lib/pauses';
 import { fmtClock, fmtSeconds } from '../lib/format';
 import { CRITERIA, LEVELS } from '../lib/rubric';
+import { chatLine } from './clarify';
 
 /** Bump when the prompt, rubric or schema changes so reviews stay comparable. */
-export const PROMPT_VERSION = 'v2';
+export const PROMPT_VERSION = 'v3';
 
 /** The part the user can replace in Settings: who reviews, what to weigh, how to write. */
 export const SYSTEM_PROMPT = `You are an experienced interviewer at a top tech company reviewing a recorded mock interview. The candidate solved a LeetCode problem alone while thinking aloud. You receive the problem, a verbatim transcript of their speech (filler words preserved, with [Ns pause] markers where they were silent), pause statistics, and the code left in the editor.
@@ -16,6 +17,21 @@ The transcript comes from speech recognition. A word that makes no sense but sou
 If the problem description or code is missing, review what you have and say so in one clause; do not speculate about missing pieces.
 
 Write for the candidate in the second person. Be specific and direct, not encouraging for its own sake: quote short phrases from the transcript or reference pauses when you make a point.`;
+
+/**
+ * How to read the clarification chat. Interviewers plan a hint ladder, log
+ * each hint, and score the skill a hint gave away as not shown, while good
+ * clarifying questions and using hints well count for the candidate.
+ */
+const CHAT_GUIDE = `## Clarification chat (when present)
+The candidate could text the interviewer (a bot holding the answer key) before and while recording. Pre-session messages are listed separately; messages sent during the recording appear in the transcript on their own lines as [chat mm:ss]. Each bot reply is labelled: clarify (answered a question about the problem), hint with a size (nudge: a pointer that left the idea to them; idea: named the key technique; step: gave a concrete algorithm step), go (approved a complete correct plan), or other.
+
+Judge hints qualitatively, the way an interviewer does, never by a fixed deduction per hint:
+- Approach: credit only what they reached themselves. A nudge they turned into the approach is minor. An idea hint means the insight was not theirs; score how they built on it. A step hint means that part shows nothing. Needing several major (idea or step) hints fits about Lean no; none fits the upper levels.
+- Understanding: good clarifying questions (constraints, edge cases, input format) before designing are evidence for the upper levels.
+- Communication: picking up a hint quickly and explaining how it changes the plan counts for them; ignoring hints or repeating a refuted idea counts against.
+- A go reply means the plan was correct; check that the code followed it.
+Mention the hints in the relevant notes, and in the summary when they shaped the outcome.`;
 
 /** Always sent after the (possibly custom) system prompt, so scoring never drifts. */
 export const RUBRIC = [
@@ -30,6 +46,7 @@ summary: 2-4 sentences on the interview as a whole.`,
       `## ${c.label} (${c.id})\nLooks at ${c.looksFor}.\n` +
       c.anchors.map((a, i) => `${i + 1} ${LEVELS[i]}: ${a}`).join('\n'),
   ),
+  CHAT_GUIDE,
 ].join('\n\n');
 
 /**
@@ -88,7 +105,21 @@ export function buildUserMessage(input: ReviewInput): string {
     `## Session stats\n- Duration: ${fmtClock(input.durationMs)}\n- Pauses (>= threshold): ${stats.count}, total silence ${fmtSeconds(stats.totalMs)}, longest ${fmtSeconds(stats.longestMs)}\n- Filler words counted (lower bound): ${input.fillerCount}`,
   );
 
-  parts.push(`## Transcript (verbatim, with pause markers)\n${input.markedTranscript || '(empty)'}`);
+  const chat = input.chat;
+  if (chat) {
+    const before = chat.messages.filter((m) => m.at < chat.startedAt);
+    const hints = chat.messages.filter((m) => m.kind === 'hint');
+    const bySize = (['nudge', 'idea', 'step'] as const)
+      .map((s) => `${hints.filter((h) => h.size === s).length} ${s}`)
+      .join(', ');
+    parts.push(`## Clarification chat\nHints given: ${hints.length} (${bySize}).`);
+    if (before.length) parts.push(`## Pre-session clarification\n${before.map(chatLine).join('\n')}`);
+    if (chat.sheet) parts.push(`## Answer key (hidden from the candidate)\n${chat.sheet}`);
+  }
+
+  parts.push(
+    `## Transcript (verbatim, with pause markers${chat ? ' and chat lines' : ''})\n${input.markedTranscript || '(empty)'}`,
+  );
 
   parts.push(
     input.code !== null

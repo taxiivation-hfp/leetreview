@@ -1,5 +1,5 @@
 import type { ReviewModel } from '../settings';
-import type { Pause, ReviewOutput } from '../types';
+import type { ChatMessage, Pause, ReviewOutput } from '../types';
 
 export interface ReviewInput {
   problemTitle: string;
@@ -13,6 +13,8 @@ export interface ReviewInput {
   pauses: Pause[];
   durationMs: number;
   fillerCount: number;
+  /** Clarification chat sent with the session; in-recording lines are already in markedTranscript. */
+  chat?: { messages: ChatMessage[]; sheet: string | null; startedAt: number };
 }
 
 export interface ReviewResult {

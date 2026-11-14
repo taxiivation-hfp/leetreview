@@ -1,7 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getDescription, getEditorCode } from '../adapters/leetcode';
-import { countFillers, editableText, isEdited, realignWords, tokenize, toMarkedText } from '../lib/alignPauses';
+import {
+  countFillers,
+  editableText,
+  isEdited,
+  realignWords,
+  tokenize,
+  toMarkedText,
+  toMarkedTextWithNotes,
+} from '../lib/alignPauses';
 import {
   appendReview,
   db,
@@ -14,10 +22,13 @@ import {
 import { fmtClock, fmtSeconds, fmtWhen } from '../lib/format';
 import { blobToBase64, sendRequest, type ReviewData, type TranscribeData } from '../lib/messages';
 import { pauseStats } from '../lib/pauses';
-import type { Review, Session } from '../lib/types';
+import { chatLine } from '../prompts/clarify';
+import type { ChatMessage, Review, Session } from '../lib/types';
 import {
   BackIcon,
+  BulbIcon,
   CheckIcon,
+  ChevronIcon,
   CloseIcon,
   CopyIcon,
   PauseIcon,
@@ -27,6 +38,7 @@ import {
   SparkIcon,
   TrashIcon,
 } from './icons';
+import { Bubble } from './ClarifyChat';
 import { ReviewPane } from './ReviewPane';
 
 interface Props {
@@ -100,10 +112,20 @@ export function SessionDetail({ sessionId, pageSlug, narrow, backLabel = 'Back t
           difficulty: session.difficulty,
           problemDescription: getDescription(),
           code,
-          markedTranscript: toMarkedText(transcript, session.pauses),
+          markedTranscript: toMarkedTextWithNotes(
+            transcript,
+            session.pauses,
+            (session.chat?.messages ?? [])
+              .filter((m) => m.at >= session.startedAt)
+              .map((m) => ({
+                atMs: m.at - session.startedAt,
+                text: `[chat ${fmtClock(m.at - session.startedAt)}] ${chatLine(m)}`,
+              })),
+          ),
           pauses: session.pauses,
           durationMs: session.durationMs,
           fillerCount: transcript.fillerCount ?? 0,
+          ...(session.chat && { chat: { ...session.chat, startedAt: session.startedAt } }),
         },
       });
       if (!res.ok) throw new Error(res.error);
@@ -263,6 +285,8 @@ export function SessionDetail({ sessionId, pageSlug, narrow, backLabel = 'Back t
             )}
           </div>
 
+          {session.chat && <ChatCard messages={session.chat.messages} />}
+
           {error && <div className="err">{error}</div>}
 
           <div className="acts">
@@ -409,6 +433,31 @@ function Player({ session }: { session: Session }) {
           }}
           onTimeUpdate={(e) => setPos(e.currentTarget.currentTime * 1000)}
         />
+      )}
+    </div>
+  );
+}
+
+/** The clarification chat that went with this session, folded by default. */
+function ChatCard({ messages }: { messages: ChatMessage[] }) {
+  const [open, setOpen] = useState(false);
+  const hints = messages.filter((m) => m.kind === 'hint').length;
+  return (
+    <div className="card chat-card">
+      <button className="lbl chat-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span>Chat</span>
+        <span className={'hints' + (hints ? ' on' : '')} title={`${hints} hint${hints === 1 ? '' : 's'}`}>
+          <BulbIcon size={12} />
+          {hints}
+        </span>
+        <ChevronIcon size={12} className={open ? 'flip' : undefined} />
+      </button>
+      {open && (
+        <div className="chat-list">
+          {messages.map((m, i) => (
+            <Bubble key={i} m={m} />
+          ))}
+        </div>
       )}
     </div>
   );

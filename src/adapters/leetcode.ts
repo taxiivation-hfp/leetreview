@@ -21,6 +21,11 @@ export const SEL = {
   /** Topic tag chips under the description. */
   topicLinks: 'a[href^="/tag/"]',
   problemPath: /^\/problems\/([^/]+)/,
+  /**
+   * A problem row on /problemset and /problem-list/* (observed 2026-11-15).
+   * Its first child is a flex strip whose first cell holds the solved check.
+   */
+  listRow: 'a[data-e2e-locator="question-list-row"][data-e2e-slug]',
 } as const;
 
 export function getSlug(url: string = location.href): string | null {

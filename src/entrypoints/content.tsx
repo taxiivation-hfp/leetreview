@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { SEL, findProblemTabset, findTabContainer, getProblemInfo, isProblemPage } from '../adapters/leetcode';
 import { Panel } from '../components/Panel';
+import { mountListScores } from '../lib/listScores';
 import type { ProblemInfo } from '../lib/types';
 
 const TAB_ID = 'leetreview-tab';
@@ -15,6 +16,7 @@ export default defineContentScript({
   runAt: 'document_idle',
   async main(ctx) {
     injectFonts();
+    ctx.onInvalidated(mountListScores());
 
     let ui: Awaited<ReturnType<typeof mountPanel>> | null = null;
     let active = false;

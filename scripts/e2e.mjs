@@ -83,6 +83,31 @@ class CDP {
   }
 }
 
+/** 8 scored attempts over two-sum, add-two-numbers and median-of-two-sorted-arrays. */
+async function seedHistory(cdp) {
+  const probs = [
+    ['two-sum', '1. Two Sum', 'Easy', ['Array', 'Hash Table']],
+    ['add-two-numbers', '2. Add Two Numbers', 'Medium', ['Linked List', 'Math']],
+    ['median-of-two-sorted-arrays', '4. Median of Two Sorted Arrays', 'Hard', ['Array', 'Binary Search']],
+  ];
+  const ids = ['understanding', 'approach', 'complexity', 'code', 'testing', 'communication'];
+  const rows = Array.from({ length: 8 }, (_, k) => {
+    const [slug, title, difficulty, topics] = probs[k % 3];
+    const criteria = Object.fromEntries(ids.map((id, j) => {
+      const score = Math.max(1, Math.min(4, 1 + Math.round((k + j) / 3) - (id === 'testing' ? 1 : 0)));
+      return [id, { score, note: 'n', improvements: [] }];
+    }));
+    return { s: { id: 'h' + k, problemSlug: slug, problemTitle: title, difficulty, topics, startedAt: Date.now() - (8 - k) * 86400000,
+      durationMs: 600000, audioBlobId: 'none', pauses: [], reviewIds: ['hr' + k] },
+      r: { id: 'hr' + k, sessionId: 'h' + k, provider: 'anthropic', model: 'claude-sonnet-5-5', createdAt: Date.now() - (8 - k) * 86400000 + 1000,
+      codeSnapshot: '', promptVersion: 'v2', output: JSON.stringify({ summary: 's', criteria }) } };
+  });
+  return cdp.eval(`(async()=>{const db=await new Promise(r=>{const q=indexedDB.open('leetreview');q.onsuccess=()=>r(q.result)});
+    const tx=db.transaction(['sessions','reviews'],'readwrite');
+    for (const {s,r} of ${JSON.stringify(rows)}) { tx.objectStore('sessions').put(s); tx.objectStore('reviews').put(r); }
+    await new Promise(r=>tx.oncomplete=r); return 'ok'})()`);
+}
+
 try {
   const version = await json('/json/version');
   const browser = await CDP.connect(version.webSocketDebuggerUrl);
@@ -259,27 +284,7 @@ try {
       await cdp.shot('19-review-v1.png');
     } else if (step === 'history') {
       // Seed 8 scored attempts over three problems, then drive filters, the split toggle and hover.
-      const probs = [
-        ['two-sum', '1. Two Sum', 'Easy', ['Array', 'Hash Table']],
-        ['add-two-numbers', '2. Add Two Numbers', 'Medium', ['Linked List', 'Math']],
-        ['median-of-two-sorted-arrays', '4. Median of Two Sorted Arrays', 'Hard', ['Array', 'Binary Search']],
-      ];
-      const ids = ['understanding', 'approach', 'complexity', 'code', 'testing', 'communication'];
-      const rows = Array.from({ length: 8 }, (_, k) => {
-        const [slug, title, difficulty, topics] = probs[k % 3];
-        const criteria = Object.fromEntries(ids.map((id, j) => {
-          const score = Math.max(1, Math.min(4, 1 + Math.round((k + j) / 3) - (id === 'testing' ? 1 : 0)));
-          return [id, { score, note: 'n', improvements: [] }];
-        }));
-        return { s: { id: 'h' + k, problemSlug: slug, problemTitle: title, difficulty, topics, startedAt: Date.now() - (8 - k) * 86400000,
-          durationMs: 600000, audioBlobId: 'none', pauses: [], reviewIds: ['hr' + k] },
-          r: { id: 'hr' + k, sessionId: 'h' + k, provider: 'anthropic', model: 'claude-sonnet-5-5', createdAt: Date.now() - (8 - k) * 86400000 + 1000,
-          codeSnapshot: '', promptVersion: 'v2', output: JSON.stringify({ summary: 's', criteria }) } };
-      });
-      say('seed history', await cdp.eval(`(async()=>{const db=await new Promise(r=>{const q=indexedDB.open('leetreview');q.onsuccess=()=>r(q.result)});
-        const tx=db.transaction(['sessions','reviews'],'readwrite');
-        for (const {s,r} of ${JSON.stringify(rows)}) { tx.objectStore('sessions').put(s); tx.objectStore('reviews').put(r); }
-        await new Promise(r=>tx.oncomplete=r); return 'ok'})()`));
+      say('seed history', await seedHistory(cdp));
       const sr = "document.getElementById('leetreview-host').shadowRoot";
       const chip = (l) => cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='${l}').click()`);
       await chip('History');
@@ -458,6 +463,20 @@ try {
       await cdp.shot('08-native.png');
     } else if (step === 'code') {
       say('editor code', JSON.stringify(await cdp.eval(`new Promise(res=>{const id='x';window.addEventListener('leetreview:code-response',e=>res(e.detail.code));window.dispatchEvent(new CustomEvent('leetreview:code-request',{detail:{id}}));setTimeout(()=>res('TIMEOUT'),1500)})`)));
+    } else if (step === 'list') {
+      say('seed list', await seedHistory(cdp));
+      // The problem list shows each problem's latest score beside the check, 0 if never scored.
+      await cdp.send('Page.navigate', { url: 'https://leetcode.com/problemset/' });
+      await sleep(9000);
+      const badges = `JSON.stringify(Object.fromEntries([...document.querySelectorAll('a[data-e2e-locator="question-list-row"]')].slice(0,6)
+        .map(r=>[r.dataset.e2eSlug, r.querySelector('.leetreview-score')?.textContent ?? 'MISSING'])))`;
+      say('list badges', await cdp.eval(badges));
+      say('badge after check', await cdp.eval(`(()=>{const b=document.querySelector('.leetreview-score');return b?.previousElementSibling?.querySelector('svg, [class*=before]')? 'yes':'no'})()`));
+      await cdp.shot('30-problem-list.png');
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 2, mobile: false });
+      await sleep(500);
+      await cdp.shot('31-problem-list-hidpi.png');
+      await cdp.send('Emulation.clearDeviceMetricsOverride');
     } else if (step === 'nav') {
       await cdp.eval("document.querySelector('a[href*=\"/problems/add-two-numbers\"]') ? document.querySelector('a[href*=\"/problems/add-two-numbers\"]').click() : history.pushState({}, '', '/problems/add-two-numbers/')");
       await sleep(5000);

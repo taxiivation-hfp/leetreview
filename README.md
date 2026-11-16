@@ -25,20 +25,24 @@ I built it because interview prep on your own has no feedback loop. You solve th
 
 <table>
   <tr>
-    <td><img src="screenshots/record.png" width="460" alt="Recording, with the live waveform and quiet indicator"></td>
+    <td><img src="screenshots/record.png" width="460" alt="Recorder filling the panel, ready to record, with the chat button in the corner"></td>
+    <td><img src="screenshots/chat.png" width="460" alt="Clarification chat open, the recorder shrunk to one strip with the waveform split around the mic button"></td>
+  </tr>
+  <tr>
     <td><img src="screenshots/review.png" width="460" alt="Transcript with fillers and pauses marked, beside the rubric review"></td>
-  </tr>
-  <tr>
     <td><img src="screenshots/history.png" width="460" alt="History of overall scores across ten weeks, hire zone shaded, newest attempt expanded"></td>
-    <td><img src="screenshots/criteria.png" width="460" alt="History split into one chart per criterion, weakest outlined"></td>
   </tr>
   <tr>
+    <td><img src="screenshots/criteria.png" width="460" alt="History split into one chart per criterion, weakest outlined"></td>
     <td><img src="screenshots/sessions.png" width="460" alt="Sessions for one problem, marked transcribed and reviewed"></td>
+  </tr>
+  <tr>
     <td><img src="screenshots/settings.png" width="460" alt="Settings with the mic test running"></td>
+    <td></td>
   </tr>
 </table>
 
-Scores and review text are demo data seeded by `scripts/screenshots.mjs`, which regenerates these images.
+Scores and review text are demo data seeded by `scripts/screenshots.mjs`, which regenerates these images (the record and chat shots are live captures).
 
 ## Architecture
 

@@ -21,12 +21,12 @@ export const CRITERIA: readonly Criterion[] = [
   {
     id: 'understanding',
     label: 'Understanding',
-    looksFor: 'restating the problem, clarifying questions, and edge cases before designing',
+    looksFor: 'restating the problem, stating assumptions and edge cases, and checking them on an example before designing',
     anchors: [
       'Starts coding without restating the problem, or misreads it.',
       'Restates the problem but misses key constraints or edge cases.',
-      'Restates the problem and names the main edge cases before designing.',
-      'Also raises clarifying questions and checks their understanding on an example before designing.',
+      'Restates the problem and states the main constraints and assumptions before designing.',
+      'Also names the edge cases (such as a single element) and checks their understanding on an example before designing. If the clarification chat has candidate messages, also asks good clarifying questions there.',
     ],
   },
   {

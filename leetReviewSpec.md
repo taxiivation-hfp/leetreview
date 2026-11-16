@@ -182,7 +182,7 @@ Review {
 - **Claude cannot transcribe audio**, which is why transcription uses a separate provider and key.
 
 ### Review prompt and rubric (v2)
-Reviews score six fixed criteria (understanding, approach, complexity, code, testing, communication) on a 1-4 hire scale: Strong no, Lean no, Lean hire, Strong hire. The final score is the equal-weight mean, computed in code. Each criterion gets a one-line justification quoting the transcript and 4 - score improvements. The persona part of the system prompt is editable in Settings; the rubric block and output schema are fixed so scores stay comparable. Anchors live in `src/lib/rubric.ts`. Each review stores a `promptVersion` (`v2`, or `v2-custom` with an edited prompt).
+Reviews score six fixed criteria (understanding, approach, complexity, code, testing, communication) on a 1-4 hire scale: Strong no, Lean no, Lean hire, Strong hire. The final score is the equal-weight mean, computed in code. Each criterion gets a one-line justification quoting the transcript and 4 - score improvements. The persona part of the system prompt is editable in Settings; the rubric block and output schema are fixed so scores stay comparable. Anchors live in `src/lib/rubric.ts`. Each review stores a `promptVersion` (`v4`, or `v4-custom` with an edited prompt).
 
 ---
 

@@ -5,7 +5,7 @@ import { CRITERIA, LEVELS } from '../lib/rubric';
 import { chatLine } from './clarify';
 
 /** Bump when the prompt, rubric or schema changes so reviews stay comparable. */
-export const PROMPT_VERSION = 'v3';
+export const PROMPT_VERSION = 'v4';
 
 /** The part the user can replace in Settings: who reviews, what to weigh, how to write. */
 export const SYSTEM_PROMPT = `You are an experienced interviewer at a top tech company reviewing a recorded mock interview. The candidate solved a LeetCode problem alone while thinking aloud. You receive the problem, a verbatim transcript of their speech (filler words preserved, with [Ns pause] markers where they were silent), pause statistics, and the code left in the editor.
@@ -28,7 +28,7 @@ The candidate could text the interviewer (a bot holding the answer key) before a
 
 Judge hints qualitatively, the way an interviewer does, never by a fixed deduction per hint:
 - Approach: credit only what they reached themselves. A nudge they turned into the approach is minor. An idea hint means the insight was not theirs; score how they built on it. A step hint means that part shows nothing. Needing several major (idea or step) hints fits about Lean no; none fits the upper levels.
-- Understanding: good clarifying questions (constraints, edge cases, input format) before designing are evidence for the upper levels.
+- Understanding: if the chat has no candidate messages, or there is no chat at all, the candidate had nobody to ask. Never lower the score for missing questions; judge the restatement, assumptions stated aloud, edge cases and an example check. If the chat does have candidate messages, a 4 also needs good clarifying questions (constraints, edge cases, input format) before designing; without them cap Understanding at 3, and do not penalize the same gap again elsewhere. Praise good questions when present. Judge restatement length only under Communication.
 - Communication: picking up a hint quickly and explaining how it changes the plan counts for them; ignoring hints or repeating a refuted idea counts against.
 - A go reply means the plan was correct; check that the code followed it.
 Mention the hints in the relevant notes, and in the summary when they shaped the outcome.`;
@@ -38,7 +38,7 @@ export const RUBRIC = [
   `Score the interview on this fixed rubric. Each criterion gets 1-4: ${LEVELS.map((l, i) => `${i + 1} ${l}`).join(', ')}. Pick the level whose description best fits the evidence in the transcript and code; score only what they show.`,
   `For every criterion:
 - note: one line justifying the score, quoting the transcript (or the code) where you can.
-- fix1, fix2, ...: concrete things to practice next time, highest impact first, one per field. A 4 gets none, a 3 gets one, a 2 gets two, a 1 gets three.
+- fix1, fix2, ...: concrete things to practice next time, highest impact first, one per field. A 4 gets none, a 3 gets one, a 2 gets two, a 1 gets three. Suggest asking clarifying questions only when the clarification chat has candidate messages; otherwise suggest stating assumptions aloud and naming edge cases.
 
 summary: 2-4 sentences on the interview as a whole.`,
   ...CRITERIA.map(

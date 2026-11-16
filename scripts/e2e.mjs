@@ -385,7 +385,12 @@ try {
       // 'chatclear': Clear empties the chat.
       const sr = "document.getElementById('leetreview-host').shadowRoot";
       const chip = (l) => cdp.eval(`[...${sr}.querySelectorAll('.ch')].find(b=>b.textContent==='${l}').click()`);
-      const state = `JSON.stringify({hints:${sr}.querySelector('.chat .hints')?.textContent,msgs:${sr}.querySelectorAll('.chat .msg:not(.pending)').length,
+      // The chat starts closed behind a toggle; the strip replaces the full recorder when open.
+      const openChat = async () => {
+        await cdp.eval(`${sr}.querySelector('[aria-label="Open chat"]')?.click()`);
+        await sleep(400);
+      };
+      const state = `JSON.stringify({strip:!!${sr}.querySelector('.rec-strip'),hints:${sr}.querySelector('.chat .hints')?.textContent,msgs:${sr}.querySelectorAll('.chat .msg:not(.pending)').length,
         go:${sr}.querySelectorAll('.chat .msg.go').length,rungs:${sr}.querySelectorAll('.chat .msg.hint .rungs i.f').length,
         toggle:${sr}.querySelector('.chat-head [aria-pressed]')?.getAttribute('aria-pressed'),err:${sr}.querySelector('.chat ~ .err, .chat .err')?.textContent})`;
       if (step === 'chat') {
@@ -405,6 +410,9 @@ try {
         await sleep(300);
         await chip('Record');
         await sleep(800);
+        say('chat closed', await cdp.eval(`JSON.stringify({chat:!!${sr}.querySelector('.chat'),badge:${sr}.querySelector('.chat-tg .badge')?.textContent})`));
+        await cdp.shot('29-rec-full.png');
+        await openChat();
         say('chat seeded', await cdp.eval(state));
         await cdp.shot('30-chat.png');
         await cdp.eval(`${sr}.querySelector('.chat-head [aria-pressed]').click()`);
@@ -421,6 +429,7 @@ try {
       } else {
         await chip('Record');
         await sleep(600);
+        await openChat();
         await cdp.eval(`${sr}.querySelector('[aria-label="Clear chat"]').click()`);
         await sleep(500);
         say('after clear', await cdp.eval(state));

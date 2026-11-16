@@ -143,37 +143,16 @@ svg {
 }
 
 /* ---- record ---- */
-.rec-wrap {
-  align-items: center;
+.body.rec-wrap {
+  overflow: hidden;
   padding-top: 10px;
-}
-.rec-col {
-  width: 100%;
-  max-width: 440px;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(10px, 3.5cqh, 22px);
-}
-.rec-head {
-  text-align: center;
-  margin-top: 6px;
-}
-.rec-head .tm {
-  font-size: clamp(36px, 12cqh, 72px);
-  line-height: 1.1;
-  margin-top: 6px;
+  padding-bottom: 14px;
+  gap: 12px;
 }
 .rec-head .lbl.live {
   color: var(--red-soft);
 }
-.rb-row {
-  display: flex;
-  justify-content: center;
-  margin: clamp(2px, 2cqh, 12px) 0;
-}
 .rb {
-  width: clamp(64px, 17cqh, 104px);
-  height: clamp(64px, 17cqh, 104px);
   border-radius: 50%;
   border: 0;
   background: var(--red);
@@ -181,6 +160,7 @@ svg {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: none;
   box-shadow:
     0 0 0 10px rgba(255, 90, 60, 0.14),
     0 0 0 22px rgba(255, 90, 60, 0.07),
@@ -202,18 +182,20 @@ svg {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  height: clamp(36px, 10cqh, 60px);
-  padding: 0 10px;
+  padding: 0 12px;
   background: var(--card);
   border-radius: 10px;
   overflow: hidden;
+  min-width: 0;
 }
 .wave i {
   display: block;
+  flex: none;
   width: 4px;
   border-radius: 2px;
   background: var(--amber);
-  min-height: 6px;
+  min-height: 4px;
+  max-height: 100%;
   transition: height 0.1s linear;
 }
 .wave.idle i {
@@ -229,57 +211,140 @@ svg {
   font-size: 12px;
 }
 
-/* ---- record: recorder on top, clarification chat below ---- */
-.body.rec-split {
-  overflow: hidden;
-  gap: 12px;
-  padding-bottom: 14px;
+/* Chat toggle: bottom-right of the stage, right end of the strip. */
+.ib.chat-tg {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  color: var(--fg-mut);
 }
-.rec-top {
-  flex: 1 1 0;
+.ib.chat-tg.on {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--page);
+}
+.chat-tg .badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--amber);
+  color: var(--page);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* Full: the recorder owns the pane and scales to it. */
+.rec-stage {
+  position: relative;
+  flex: 1;
   min-height: 0;
-  width: 100%;
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: flex-start;
-  overflow-y: auto;
-  scrollbar-width: none;
-  /* The recorder scales to its own half, not the whole pane. */
   container-type: size;
 }
-.rec-top .rec-col {
-  gap: clamp(8px, 4.5cqh, 22px);
+.rec-stage .rec-col {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 5cqh, 36px);
 }
-.rec-top .rec-col > * {
+.rec-stage .rec-col > * {
   flex-shrink: 0;
 }
-.rec-top .rec-head .tm {
-  font-size: clamp(32px, 21cqh, 72px);
+.rec-stage .rec-head {
+  text-align: center;
 }
-.rec-top .rb {
-  width: clamp(56px, 28cqh, 104px);
-  height: clamp(56px, 28cqh, 104px);
+.rec-stage .rec-head .tm {
+  font-size: clamp(32px, min(16cqh, 22cqw), 104px);
+  line-height: 1.1;
+  margin-top: 6px;
 }
-.rec-top .rb-row {
-  /* Room for the button's 22px glow ring so it never overlaps the timer or waveform. */
-  margin: 14px 0;
+.rec-stage .rb-row {
+  display: flex;
+  justify-content: center;
+  /* Room for the 22px glow ring so it never touches the timer or waveform. */
+  margin: 16px 0;
 }
-.rec-top .wave {
-  height: clamp(30px, 14cqh, 60px);
+.rec-stage .rb {
+  width: clamp(56px, min(22cqh, 30cqw), 132px);
+  height: clamp(56px, min(22cqh, 30cqw), 132px);
 }
-.rec-top::-webkit-scrollbar {
-  display: none;
+.rec-stage .wave {
+  height: clamp(32px, 14cqh, 88px);
+}
+.rec-stage > .chat-tg {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+/* Chat open: the recorder shrinks to one media-bar strip, the chat fills the rest. */
+.rec-strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 6px 0 12px;
+  background: var(--card);
+  border-radius: 26px;
+}
+.rec-strip .tm {
+  flex: none;
+  min-width: 5ch;
+  font-size: 13px;
+  color: var(--fg-mut);
+}
+.rec-strip.live .tm {
+  color: var(--red-soft);
+}
+.rec-strip .tm.hush {
+  color: var(--amber);
+}
+.rec-strip .wave {
+  flex: 1;
+  height: 28px;
+  padding: 0;
+  background: none;
+}
+.rec-strip .rb {
+  width: 38px;
+  height: 38px;
+  box-shadow:
+    0 0 0 5px rgba(255, 90, 60, 0.14),
+    0 0 18px rgba(255, 90, 60, 0.45);
+}
+.rec-strip .rb.idle {
+  box-shadow:
+    0 0 0 5px rgba(255, 180, 84, 0.14),
+    0 0 16px rgba(255, 180, 84, 0.3);
+}
+.rec-strip .rb svg {
+  width: 16px;
+  height: 16px;
+}
+.rec-strip .chat-tg {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
 }
 .chat {
-  flex: 1 1 0;
+  flex: 1;
   min-height: 0;
   width: 100%;
-  max-width: 440px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-top: 1px solid var(--divider);
-  padding-top: 10px;
 }
 .chat-head {
   display: flex;

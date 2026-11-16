@@ -160,7 +160,20 @@ export const BulbIcon = ({ size = 14, ...p }: P) => (
   </svg>
 );
 
-export const SendIcon = ({ size = 14, ...p }: P) => (
+export const ChatIcon = ({ size = 14, ...p }: P) => (
+  <svg
+    {...base(size, p)}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5 5h14a1 1 0 011 1v9a1 1 0 01-1 1h-8l-5 4v-4H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+  </svg>
+);
+
+export const SendIcon =({ size = 14, ...p }: P) => (
   <svg
     {...base(size, p)}
     fill="none"

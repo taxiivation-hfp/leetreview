@@ -4,7 +4,7 @@ import type { ReviewModel } from '../settings';
 import type { ChatKind, ChatMessage, HintSize } from '../types';
 import { ReviewError } from './types';
 
-/** The sheet needs real reasoning and maybe a search; replies stay on the cheap chat model. */
+/** The sheet needs real reasoning and maybe a search; replies use the chat model from Settings. */
 const SHEET_MODEL = 'claude-sonnet-5-5';
 const MAX_PAUSES = 3;
 
@@ -100,8 +100,9 @@ export async function chatReply(input: ChatInput, model: ReviewModel, apiKey: st
   try {
     message = await c.messages.create({
       model,
-      max_tokens: 4000,
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: CHAT_SCHEMA } },
+      // Medium effort: replies have to trace the candidate's plan before judging it.
+      max_tokens: 16000,
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema: CHAT_SCHEMA } },
       system: CHAT_SYSTEM,
       messages: [{ role: 'user', content: chatUserMessage(input) }],
     });

@@ -34,11 +34,7 @@ I built it because interview prep on your own has no feedback loop. You solve th
   </tr>
   <tr>
     <td><img src="screenshots/criteria.png" width="460" alt="History split into one chart per criterion, weakest outlined"></td>
-    <td><img src="screenshots/sessions.png" width="460" alt="Sessions for one problem, marked transcribed and reviewed"></td>
-  </tr>
-  <tr>
     <td><img src="screenshots/settings.png" width="460" alt="Settings with the mic test running"></td>
-    <td></td>
   </tr>
 </table>
 

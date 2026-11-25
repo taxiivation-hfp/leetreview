@@ -185,3 +185,29 @@ export const SendIcon =({ size = 14, ...p }: P) => (
     <path d="M12 19V5M5 12l7-7 7 7" />
   </svg>
 );
+
+export const DownloadIcon = ({ size = 14, ...p }: P) => (
+  <svg
+    {...base(size, p)}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+  </svg>
+);
+
+export const UploadIcon = ({ size = 14, ...p }: P) => (
+  <svg
+    {...base(size, p)}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 16V5M7 10l5-5 5 5M5 20h14" />
+  </svg>
+);

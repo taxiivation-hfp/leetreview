@@ -10,7 +10,8 @@ import {
   type Settings,
 } from '../lib/settings';
 import { SYSTEM_PROMPT } from '../prompts/review';
-import { EyeIcon, RefreshIcon } from './icons';
+import { exportAll, importBackup } from '../lib/backup';
+import { DownloadIcon, EyeIcon, RefreshIcon, UploadIcon } from './icons';
 
 export function SettingsView({ settings }: { settings: Settings }) {
   const [mics, setMics] = useState<MediaDeviceInfo[]>([]);
@@ -113,12 +114,7 @@ export function SettingsView({ settings }: { settings: Settings }) {
         )}
       </div>
 
-      <div className="field">
-        <div className="lbl">Backup</div>
-        <button className="act" disabled title="Coming in v2">
-          Export all sessions (zip) · soon
-        </button>
-      </div>
+      <BackupField />
 
       <div className="note">
         Everything stays on this device: audio, transcripts, reviews and keys. Nothing is sent
@@ -265,6 +261,70 @@ function SensitivityField({ settings }: { settings: Settings }) {
           {listening ? 'Stop test' : 'Test mic'}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Move history between machines: export a zip, import it elsewhere. Imports only add. */
+function BackupField() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function doExport() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const url = URL.createObjectURL(await exportAll());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leetreview-${new Date().toISOString().slice(0, 10)}.zip`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : 'Export failed' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doImport(file: File) {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await importBackup(file);
+      setMsg({ ok: true, text: `+${r.sessions} sessions · +${r.reviews} reviews · ${r.skipped} already here` });
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : 'Import failed' });
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  return (
+    <div className="field">
+      <div className="lbl">Backup · move between machines</div>
+      <div className="inline">
+        <button className="act" disabled={busy} onClick={doExport} aria-label="Export all sessions" title="Export all sessions (zip)">
+          <DownloadIcon /> Export
+        </button>
+        <button className="act" disabled={busy} onClick={() => fileRef.current?.click()} aria-label="Import sessions" title="Import a LeetReview zip; only adds, never deletes">
+          <UploadIcon /> Import
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".zip,application/zip"
+          hidden
+          onChange={(e) => e.target.files?.[0] && doImport(e.target.files[0])}
+        />
+      </div>
+      {msg && (
+        <div className="note" style={msg.ok ? undefined : { color: 'var(--red)' }}>
+          {msg.text}
+        </div>
+      )}
     </div>
   );
 }

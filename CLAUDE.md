@@ -38,6 +38,7 @@ src/components/
   icons.tsx        [read] inline SVG icons, 24 viewBox, `size` prop: Mic Stop Play Pause Trash Back Chevron Close Refresh Spark Pencil Copy Check Eye Bulb Chat Send
 src/lib/
   db.ts            [read mostly] Dexie 'leetreview' v2: sessions(id,problemSlug,startedAt) audio transcripts reviews recordingChunks(++seq) chats(slug) logicSheets([slug+language]). createSession, deleteSessionCascade, backfillProblemMeta, setTranscript/updateTranscript, appendReview (reviews never deleted), chunk recovery (findOrphanRecordings/finalizeRecording), chat helpers (getChat, appendChatMessages, clearChat, setSendToReview, chatForSession, getSheet/putSheet)
+  backup.ts        [read] v2 sync: exportAll() → zip (manifest.json, data.json, audio/<id>); importBackup(file) additive/idempotent merge by nanoid (sessions/transcripts/reviews insert-if-missing, reviewIds unioned, chats unioned by at|role|text, newest logicSheet wins). No settings/keys. UI: BackupField in SettingsView
   recorder.ts      [read] Recorder: MediaRecorder opus 32kbps, 5s timeslice chunks → IndexedDB (crash-safe), startedAt=Date.now() epoch, elapsed via performance.now(), PauseDetector
   pauses.ts        [partial] PauseDetector: levels[] (0..1, rolling 120) for waveform, pause list, subscribe(state.currentSilenceMs)
   recordingStore.ts [read] module-level store + useSyncExternalStore; recording survives panel remounts / SPA nav. startRecording/stopRecording
